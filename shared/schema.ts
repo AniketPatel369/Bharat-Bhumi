@@ -32,6 +32,8 @@ export const roomSchema = insertRoomSchema.extend({
   currentPlayerIndex: z.number().default(0),
   turnNumber: z.number().default(1),
   createdAt: z.date().default(() => new Date()),
+  expiresAt: z.date().optional(),
+  isExpired: z.boolean().default(false),
 });
 
 // Game action schemas

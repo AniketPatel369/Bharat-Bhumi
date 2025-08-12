@@ -137,6 +137,23 @@ export default function Lobby({ roomCode }: LobbyProps) {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => {
+                const roomUrl = `${window.location.origin}/lobby/${room.code}`;
+                navigator.clipboard.writeText(roomUrl);
+                toast({
+                  title: "Room Link Copied!",
+                  description: "Share this link with other players",
+                });
+              }}
+              data-testid="button-share-room"
+              className="text-white border-white hover:bg-white hover:text-navy mr-2"
+            >
+              <i className="fas fa-share mr-1"></i>
+              Share
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setLocation("/")}
               data-testid="button-leave-room"
               className="text-white border-white hover:bg-white hover:text-navy"

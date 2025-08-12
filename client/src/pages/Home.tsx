@@ -11,6 +11,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(4);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showJoinForm, setShowJoinForm] = useState(false);
   const { toast } = useToast();
@@ -52,7 +53,8 @@ export default function Home() {
       type: 'createRoom',
       hostName: playerName.trim(),
       hostColor: selectedColor.value,
-      hostAvatar: selectedColor.name.charAt(0)
+      hostAvatar: selectedColor.name.charAt(0),
+      maxPlayers: maxPlayers
     }));
 
     // Listen for room creation response
@@ -187,6 +189,25 @@ export default function Home() {
                 />
               </div>
               
+              <div>
+                <Label htmlFor="max-players" data-testid="label-max-players">Maximum Players</Label>
+                <select
+                  id="max-players"
+                  data-testid="select-max-players"
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-white"
+                >
+                  <option value={2}>2 Players</option>
+                  <option value={3}>3 Players</option>
+                  <option value={4}>4 Players</option>
+                  <option value={5}>5 Players</option>
+                  <option value={6}>6 Players</option>
+                  <option value={7}>7 Players</option>
+                  <option value={8}>8 Players</option>
+                </select>
+              </div>
+
               <div>
                 <Label data-testid="label-player-color">Choose Your Color</Label>
                 <div className="flex flex-wrap gap-2 mt-2">

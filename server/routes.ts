@@ -18,6 +18,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const connections = new Map<string, ExtendedWebSocket>();
   const roomConnections = new Map<string, Set<string>>();
 
+  // Setup automatic room cleanup every 10 minutes
+  setInterval(async () => {
+    const cleanedCount = await storage.cleanupExpiredRooms();
+    if (cleanedCount > 0) {
+      console.log(`Cleaned up ${cleanedCount} expired rooms`);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+
   // Broadcast to all clients in a room
   function broadcastToRoom(roomId: string, message: any, excludeId?: string) {
     const roomClients = roomConnections.get(roomId);
@@ -44,8 +52,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         switch (message.type) {
           case 'createRoom':
             try {
-              const { hostName, hostColor, hostAvatar } = message;
-              const room = await storage.createRoom({ hostId: '', maxPlayers: 8 });
+              const { hostName, hostColor, hostAvatar, maxPlayers = 8 } = message;
+              const room = await storage.createRoom({ hostId: '', maxPlayers: maxPlayers });
               
               // Add host as first player
               const host = await storage.addPlayerToRoom(room.id, {
@@ -461,6 +469,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             const room = await storage.getRoom(ws.roomId);
             if (room) {
+              // If host disconnected, set room to expire in 2 hours
+              if (room.hostId === ws.playerId) {
+                await storage.setRoomExpiration(ws.roomId, 2);
+                console.log(`Host disconnected from room ${room.code}, room will expire in 2 hours`);
+              }
+              
               broadcastToRoom(ws.roomId, {
                 type: 'playerDisconnected',
                 room,

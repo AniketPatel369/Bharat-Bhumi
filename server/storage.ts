@@ -21,6 +21,11 @@ export interface IStorage {
   // Game state management
   startGame(roomId: string): Promise<boolean>;
   updateGameState(roomId: string, gameState: any): Promise<boolean>;
+
+  // Room persistence management
+  setRoomExpiration(roomId: string, hoursFromNow: number): Promise<boolean>;
+  cleanupExpiredRooms(): Promise<number>;
+  isRoomExpired(roomId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -47,6 +52,7 @@ export class MemStorage implements IStorage {
       currentPlayerIndex: 0,
       turnNumber: 1,
       createdAt: new Date(),
+      isExpired: false,
     };
 
     this.rooms.set(roomId, room);
@@ -175,6 +181,55 @@ export class MemStorage implements IStorage {
     Object.assign(room, gameState);
     this.rooms.set(roomId, room);
     return true;
+  }
+
+  async setRoomExpiration(roomId: string, hoursFromNow: number): Promise<boolean> {
+    const room = this.rooms.get(roomId);
+    if (!room) return false;
+
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + hoursFromNow);
+    
+    room.expiresAt = expiresAt;
+    this.rooms.set(roomId, room);
+    return true;
+  }
+
+  async cleanupExpiredRooms(): Promise<number> {
+    const now = new Date();
+    let cleanedCount = 0;
+    const roomsToDelete: string[] = [];
+
+    this.rooms.forEach((room, roomId) => {
+      if (room.expiresAt && now > room.expiresAt) {
+        roomsToDelete.push(roomId);
+      }
+    });
+
+    roomsToDelete.forEach(roomId => {
+      const room = this.rooms.get(roomId);
+      if (room) {
+        this.rooms.delete(roomId);
+        this.roomCodes.delete(room.code);
+        this.chatMessages.delete(roomId);
+        cleanedCount++;
+      }
+    });
+
+    return cleanedCount;
+  }
+
+  async isRoomExpired(roomId: string): Promise<boolean> {
+    const room = this.rooms.get(roomId);
+    if (!room) return true;
+
+    if (room.expiresAt && new Date() > room.expiresAt) {
+      room.isExpired = true;
+      this.rooms.set(roomId, room);
+      return true;
+    }
+
+    return false;
   }
 
   private generateRoomCode(): string {
