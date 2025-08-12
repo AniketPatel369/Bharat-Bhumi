@@ -1,0 +1,278 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(60, 15%, 97%);
+  --foreground: hsl(191, 35%, 15%);
+  --card: hsl(180, 7%, 97%);
+  --card-foreground: hsl(191, 35%, 15%);
+  --popover: hsl(60, 15%, 97%);
+  --popover-foreground: hsl(191, 35%, 15%);
+  --primary: hsl(15, 100%, 60%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(98, 82%, 25%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(240, 2%, 90%);
+  --muted-foreground: hsl(191, 35%, 15%);
+  --accent: hsl(218, 45%, 93%);
+  --accent-foreground: hsl(15, 100%, 60%);
+  --destructive: hsl(356, 91%, 54%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(201, 30%, 91%);
+  --input: hsl(200, 23%, 97%);
+  --ring: hsl(203, 89%, 53%);
+  --chart-1: hsl(15, 100%, 60%);
+  --chart-2: hsl(160, 100%, 36%);
+  --chart-3: hsl(42, 93%, 56%);
+  --chart-4: hsl(147, 79%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+  --sidebar: hsl(180, 7%, 97%);
+  --sidebar-foreground: hsl(191, 35%, 15%);
+  --sidebar-primary: hsl(15, 100%, 60%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(218, 45%, 93%);
+  --sidebar-accent-foreground: hsl(15, 100%, 60%);
+  --sidebar-border: hsl(205, 25%, 91%);
+  --sidebar-ring: hsl(203, 89%, 53%);
+  --font-sans: 'Poppins', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 1px 2px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 1px 2px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 2px 4px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 4px 6px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 8px 10px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* Game-specific colors */
+  --saffron: hsl(15, 100%, 60%);
+  --indian-green: hsl(98, 82%, 25%);
+  --navy: hsl(240, 100%, 25%);
+  --cream: hsl(60, 15%, 97%);
+  --dark-slate: hsl(191, 35%, 19%);
+  --forest-green: hsl(98, 61%, 33%);
+}
+
+.dark {
+  --background: hsl(0, 0%, 0%);
+  --foreground: hsl(200, 7%, 91%);
+  --card: hsl(228, 10%, 10%);
+  --card-foreground: hsl(0, 0%, 85%);
+  --popover: hsl(0, 0%, 0%);
+  --popover-foreground: hsl(200, 7%, 91%);
+  --primary: hsl(15, 100%, 60%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(195, 15%, 95%);
+  --secondary-foreground: hsl(191, 35%, 15%);
+  --muted: hsl(0, 0%, 9%);
+  --muted-foreground: hsl(210, 3%, 46%);
+  --accent: hsl(206, 70%, 8%);
+  --accent-foreground: hsl(15, 100%, 60%);
+  --destructive: hsl(356, 91%, 54%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(210, 5%, 15%);
+  --input: hsl(208, 28%, 18%);
+  --ring: hsl(203, 89%, 53%);
+  --chart-1: hsl(15, 100%, 60%);
+  --chart-2: hsl(160, 100%, 36%);
+  --chart-3: hsl(42, 93%, 56%);
+  --chart-4: hsl(147, 79%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+  --sidebar: hsl(228, 10%, 10%);
+  --sidebar-foreground: hsl(0, 0%, 85%);
+  --sidebar-primary: hsl(203, 89%, 53%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(206, 70%, 8%);
+  --sidebar-accent-foreground: hsl(15, 100%, 60%);
+  --sidebar-border: hsl(206, 16%, 26%);
+  --sidebar-ring: hsl(203, 89%, 53%);
+  --font-sans: 'Poppins', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 1px 2px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 1px 2px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 2px 4px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 4px 6px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00), 0px 8px 10px -1px hsl(203, 89%, 53% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(203, 89%, 53% / 0.00);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: var(--cream);
+    color: var(--dark-slate);
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+  }
+}
+
+/* Game-specific styles */
+.saffron {
+  color: var(--saffron);
+}
+
+.bg-saffron {
+  background-color: var(--saffron);
+}
+
+.indian-green {
+  color: var(--indian-green);
+}
+
+.bg-indian-green {
+  background-color: var(--indian-green);
+}
+
+.navy {
+  color: var(--navy);
+}
+
+.bg-navy {
+  background-color: var(--navy);
+}
+
+.cream {
+  color: var(--cream);
+}
+
+.bg-cream {
+  background-color: var(--cream);
+}
+
+.dark-slate {
+  color: var(--dark-slate);
+}
+
+.forest-green {
+  color: var(--forest-green);
+}
+
+.bg-forest-green {
+  background-color: var(--forest-green);
+}
+
+/* Dice roll animation */
+@keyframes dice-roll {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-dice-roll {
+  animation: dice-roll 0.5s ease-in-out;
+}
+
+/* Token movement animation */
+@keyframes token-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+  40%, 43% { transform: translate3d(0,-5px,0); }
+  70% { transform: translate3d(0,-3px,0); }
+  90% { transform: translate3d(0,-1px,0); }
+}
+
+.animate-token-bounce {
+  animation: token-bounce 0.6s ease-in-out;
+}
+
+/* Slide up animation for mobile chat */
+@keyframes slide-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Property color groups */
+.property-brown { @apply bg-amber-700; }
+.property-lightblue { @apply bg-sky-300; }
+.property-pink { @apply bg-pink-400; }
+.property-orange { @apply bg-orange-500; }
+.property-red { @apply bg-red-500; }
+.property-yellow { @apply bg-yellow-400; }
+.property-green { @apply bg-green-500; }
+.property-darkblue { @apply bg-blue-700; }
+.property-railroad { @apply bg-gray-700; }
+.property-utility { @apply bg-yellow-300; }
+
+/* Board space styling */
+.board-space {
+  @apply border border-gray-300 bg-white flex flex-col items-center justify-center text-xs font-medium p-1 relative;
+  min-height: 60px;
+  min-width: 60px;
+}
+
+.board-corner {
+  @apply rounded-lg p-2;
+  min-height: 80px;
+  min-width: 80px;
+}
+
+.property-color-bar {
+  @apply h-3 w-full rounded-t;
+}
+
+.player-token {
+  @apply w-3 h-3 rounded-full border border-white shadow-sm;
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  z-index: 10;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .board-space {
+    min-height: 40px;
+    min-width: 40px;
+    font-size: 10px;
+    padding: 0.25rem;
+  }
+  
+  .board-corner {
+    min-height: 50px;
+    min-width: 50px;
+  }
+  
+  .property-color-bar {
+    height: 8px;
+  }
+  
+  .player-token {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+/* Chat bubble styling */
+.chat-bubble {
+  @apply max-w-xs p-3 rounded-lg shadow-sm;
+}
+
+.chat-bubble-own {
+  @apply bg-blue-500 text-white ml-auto;
+}
+
+.chat-bubble-other {
+  @apply bg-white text-gray-800 mr-auto;
+}
