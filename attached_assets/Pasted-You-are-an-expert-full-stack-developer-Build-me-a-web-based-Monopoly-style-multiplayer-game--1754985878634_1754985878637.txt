@@ -1,0 +1,68 @@
+You are an expert full-stack developer.  
+Build me a **web-based Monopoly-style multiplayer game** called **Vyapaar** with the following features:
+
+1. **General**
+   - The game is inspired by Monopoly rules (turn-based, property buying, rent, chance/community chest, etc.).
+   - Maximum 8 players per room.
+   - Real-time communication using **Socket.IO**.
+   - Use **JavaScript** (not TypeScript).
+   - Backend: **Node.js + Express + Socket.IO**.
+   - Frontend: **React.js** with good UI/UX.
+   - No paid third-party services. It must run on my own server without costing money.
+
+2. **Room System**
+   - Landing page: Shows "Create Room" and "Join Room" options.
+   - **Create Room**:
+       - Ask for player name.
+       - Generate unique Player ID by combining player name + current date-time (dd-MM-yyyyhhmmss).
+       - Create a room code (6 random alphanumeric characters).
+       - Set room capacity to **8 players** max.
+       - Make the player who creates the room the **host**.
+   - **Join Room**:
+       - Ask for player name.
+       - Ask for room code.
+       - Check if room exists and has space before joining.
+   - Show a lobby screen with the list of connected players and their ready status.
+   - Host can start the game when all are ready.
+
+3. **Game Board UI**
+   - Draw a Monopoly-style board (SVG or HTML/CSS grid).
+   - Each property space should have:
+       - Name
+       - Price
+       - Owner indicator
+   - Player tokens (different colors or icons) that move around the board according to dice rolls.
+   - Dice roll animation.
+   - Interactive UI for buying properties, paying rent, chance cards, etc.
+
+4. **Real-Time Gameplay**
+   - Turn-based system synced for all players.
+   - Host decides turn order at game start.
+   - Socket.IO events for:
+       - playerJoined
+       - playerLeft
+       - gameStarted
+       - diceRolled
+       - playerMoved
+       - propertyBought
+       - rentPaid
+   - Keep game state on the server so no one can cheat by editing client-side code.
+
+5. **UI/UX**
+   - Responsive design so it works on mobile & desktop.
+   - Show player avatars, money balance, and properties owned.
+   - Smooth animations for token movement, dice rolls, and property transactions.
+   - Show in-game chat for players to talk.
+
+6. **Code Structure**
+   - `/server` → Node.js + Express + Socket.IO code.
+   - `/client` → React.js app.
+   - `server.js` runs the backend on port 3001.
+   - React app runs on port 3000 and connects to Socket.IO server.
+
+7. **Extra**
+   - Use only open-source assets or your own drawings.
+   - Prepare the code so I can later deploy it to my own VPS without Firebase.
+   - Add comments in the code so I can understand what each part does.
+
+Generate the **full project code** with backend + frontend in one workspace so I can download and run it locally.
