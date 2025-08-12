@@ -43,10 +43,31 @@ export function setupRoutes(app: express.Application, storage: IStorage) {
           case 'createRoom':
             try {
               const { hostName, maxPlayers } = message;
-              const room = await storage.createRoom(hostName);
+              const room = await storage.createRoom({ 
+                hostId: hostName, 
+                maxPlayers: maxPlayers || 8 
+              });
+              
+              // Add the host as the first player in the room
+              const hostPlayer = await storage.addPlayerToRoom(room.id, {
+                name: hostName,
+                color: '',
+                avatar: hostName.charAt(0).toUpperCase()
+              });
+
+              if (!hostPlayer) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to add host to room'
+                }));
+                break;
+              }
+              
+              // Update room to set the host ID to the actual player ID
+              const updatedRoom = await storage.updateRoom(room.id, { hostId: hostPlayer.id });
               
               ws.roomId = room.id;
-              ws.playerId = room.hostId;
+              ws.playerId = hostPlayer.id;
 
               if (!roomConnections.has(room.id)) {
                 roomConnections.set(room.id, new Set());
@@ -55,10 +76,11 @@ export function setupRoutes(app: express.Application, storage: IStorage) {
 
               ws.send(JSON.stringify({
                 type: 'roomCreated',
-                room,
-                playerId: room.hostId
+                room: updatedRoom || room,
+                playerId: hostPlayer.id
               }));
             } catch (error) {
+              console.error('Create room error:', error);
               ws.send(JSON.stringify({
                 type: 'error',
                 message: 'Failed to create room'
@@ -562,7 +584,19 @@ export function setupRoutes(app: express.Application, storage: IStorage) {
   app.post('/api/rooms', async (req, res) => {
     try {
       const { hostId, maxPlayers } = req.body;
-      const room = await storage.createRoom(hostId);
+      const room = await storage.createRoom({ hostId, maxPlayers: maxPlayers || 8 });
+      
+      // Add the host as the first player
+      const hostPlayer = await storage.addPlayerToRoom(room.id, {
+        name: hostId,
+        color: '',
+        avatar: hostId.charAt(0).toUpperCase()
+      });
+
+      if (hostPlayer) {
+        await storage.updateRoom(room.id, { hostId: hostPlayer.id });
+      }
+      
       res.json({ success: true, room });
     } catch (error) {
       console.error('Create room error:', error);
