@@ -1,88 +1,63 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
-import { storage } from "./storage";
-import { insertRoomSchema, insertPlayerSchema, chatMessageSchema, playerSchema, roomSchema } from "@shared/schema";
-import { z } from "zod";
+import express from 'express';
+import { WebSocketServer, WebSocket } from 'ws';
+import { createServer } from 'http';
+import { IStorage } from './storage';
 
 interface ExtendedWebSocket extends WebSocket {
-  playerId?: string;
   roomId?: string;
+  playerId?: string;
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export function setupRoutes(app: express.Application, storage: IStorage) {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  // Store WebSocket connections
+  // Track connections
   const connections = new Map<string, ExtendedWebSocket>();
   const roomConnections = new Map<string, Set<string>>();
 
-  // Setup automatic room cleanup every 10 minutes
-  setInterval(async () => {
-    const cleanedCount = await storage.cleanupExpiredRooms();
-    if (cleanedCount > 0) {
-      console.log(`Cleaned up ${cleanedCount} expired rooms`);
-    }
-  }, 10 * 60 * 1000); // 10 minutes
-
-  // Broadcast to all clients in a room
-  function broadcastToRoom(roomId: string, message: any, excludeId?: string) {
+  const broadcastToRoom = (roomId: string, message: any, excludeConnectionId?: string) => {
     const roomClients = roomConnections.get(roomId);
     if (!roomClients) return;
 
-    roomClients.forEach(clientId => {
-      if (excludeId && clientId === excludeId) return;
-      const ws = connections.get(clientId);
+    const messageStr = JSON.stringify(message);
+    roomClients.forEach(connectionId => {
+      if (connectionId === excludeConnectionId) return;
+      
+      const ws = connections.get(connectionId);
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
+        ws.send(messageStr);
       }
     });
-  }
+  };
 
-  // WebSocket connection handling
   wss.on('connection', (ws: ExtendedWebSocket) => {
     const connectionId = Math.random().toString(36).substring(7);
     connections.set(connectionId, ws);
 
-    ws.on('message', async (data: Buffer) => {
+    ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
         
         switch (message.type) {
           case 'createRoom':
             try {
-              const { hostName, maxPlayers = 8 } = message;
-              const room = await storage.createRoom({ hostId: '', maxPlayers: maxPlayers });
+              const { hostName, maxPlayers } = message;
+              const room = await storage.createRoom(hostName);
               
-              // Add host as first player (without color initially)
-              const host = await storage.addPlayerToRoom(room.id, {
-                name: hostName,
-                color: '', // Will be set later in lobby
-                avatar: hostName.charAt(0).toUpperCase()
-              });
+              ws.roomId = room.id;
+              ws.playerId = room.hostId;
 
-              if (host) {
-                // Update room with correct host ID
-                await storage.updateRoom(room.id, { hostId: host.id });
-                
-                // Set WebSocket properties
-                ws.roomId = room.id;
-                ws.playerId = host.id;
-
-                // Add to room connections
-                if (!roomConnections.has(room.id)) {
-                  roomConnections.set(room.id, new Set());
-                }
-                roomConnections.get(room.id)!.add(connectionId);
-
-                const updatedRoom = await storage.getRoom(room.id);
-                ws.send(JSON.stringify({
-                  type: 'roomCreated',
-                  room: updatedRoom,
-                  playerId: host.id
-                }));
+              if (!roomConnections.has(room.id)) {
+                roomConnections.set(room.id, new Set());
               }
+              roomConnections.get(room.id)!.add(connectionId);
+
+              ws.send(JSON.stringify({
+                type: 'roomCreated',
+                room,
+                playerId: room.hostId
+              }));
             } catch (error) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -112,46 +87,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              if (room.gameState !== 'waiting') {
+              const player = await storage.addPlayerToRoom(room.id, {
+                name: playerName,
+                color: '',
+                avatar: playerName.charAt(0).toUpperCase()
+              });
+              
+              if (!player) {
                 ws.send(JSON.stringify({
                   type: 'error',
-                  message: 'Game already in progress'
+                  message: 'Failed to join room'
                 }));
                 break;
               }
 
-              const player = await storage.addPlayerToRoom(room.id, {
-                name: playerName,
-                color: '', // Will be set later in lobby
-                avatar: playerName.charAt(0).toUpperCase()
-              });
+              ws.roomId = room.id;
+              ws.playerId = player.id;
 
-              if (player) {
-                ws.roomId = room.id;
-                ws.playerId = player.id;
-
-                // Add to room connections
-                if (!roomConnections.has(room.id)) {
-                  roomConnections.set(room.id, new Set());
-                }
-                roomConnections.get(room.id)!.add(connectionId);
-
-                const updatedRoom = await storage.getRoom(room.id);
-                
-                // Send success to joining player
-                ws.send(JSON.stringify({
-                  type: 'roomJoined',
-                  room: updatedRoom,
-                  playerId: player.id
-                }));
-
-                // Broadcast player joined to room
-                broadcastToRoom(room.id, {
-                  type: 'playerJoined',
-                  room: updatedRoom,
-                  player
-                }, connectionId);
+              if (!roomConnections.has(room.id)) {
+                roomConnections.set(room.id, new Set());
               }
+              roomConnections.get(room.id)!.add(connectionId);
+
+              const updatedRoom = await storage.getRoom(room.id);
+              
+              ws.send(JSON.stringify({
+                type: 'roomJoined',
+                room: updatedRoom,
+                playerId: player.id
+              }));
+
+              broadcastToRoom(room.id, {
+                type: 'playerJoined',
+                room: updatedRoom,
+                player
+              }, connectionId);
+
             } catch (error) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -173,7 +144,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              // Check if player exists in room
               const existingPlayer = room.players.find(p => p.id === playerId);
               if (!existingPlayer) {
                 ws.send(JSON.stringify({
@@ -183,14 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              // Update player connection status
               await storage.updatePlayer(room.id, playerId, { isConnected: true });
               
-              // Set WebSocket properties
               ws.roomId = room.id;
               ws.playerId = playerId;
 
-              // Add to room connections
               if (!roomConnections.has(room.id)) {
                 roomConnections.set(room.id, new Set());
               }
@@ -198,14 +165,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               const updatedRoom = await storage.getRoom(room.id);
               
-              // Send room data to rejoining player
               ws.send(JSON.stringify({
                 type: 'roomJoined',
                 room: updatedRoom,
                 playerId: playerId
               }));
 
-              // Broadcast player reconnected to room
               broadcastToRoom(room.id, {
                 type: 'playerJoined',
                 room: updatedRoom,
@@ -225,7 +190,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const { playerId, color } = message;
               if (!ws.roomId || !ws.playerId) break;
               
-              // Check if color is already taken
               const room = await storage.getRoom(ws.roomId);
               if (room) {
                 const colorTaken = room.players.some(p => p.id !== playerId && p.color === color);
@@ -237,7 +201,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   break;
                 }
                 
-                // Update player color
                 await storage.updatePlayer(ws.roomId, playerId, { color });
                 
                 const updatedRoom = await storage.getRoom(ws.roomId);
@@ -268,7 +231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
               
-              // Find the kicked player's connection
               const kickedPlayerConnection = Array.from(connections.entries()).find(
                 ([_, ws]) => ws.playerId === playerToKickId && ws.roomId === room.id
               );
@@ -276,13 +238,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (kickedPlayerConnection) {
                 const [kickedConnectionId, kickedWs] = kickedPlayerConnection;
                 
-                // Send kick message to kicked player
                 kickedWs.send(JSON.stringify({
                   type: 'kicked',
                   message: 'You have been kicked from the room'
                 }));
                 
-                // Remove from connections
                 connections.delete(kickedConnectionId);
                 const roomClients = roomConnections.get(room.id);
                 if (roomClients) {
@@ -290,7 +250,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
               
-              // Remove player from room
               await storage.removePlayer(ws.roomId!, playerToKickId);
               
               const updatedRoom = await storage.getRoom(ws.roomId!);
@@ -343,12 +302,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              // Check if all players are ready
               const allReady = room.players.every(p => p.isReady);
-              if (!allReady || room.players.length < 2) {
+              const allHaveColors = room.players.every(p => p.color);
+              if (!allReady || !allHaveColors || room.players.length < 2) {
                 ws.send(JSON.stringify({
                   type: 'error',
-                  message: 'All players must be ready and minimum 2 players required'
+                  message: 'All players must be ready with colors selected and minimum 2 players required'
                 }));
                 break;
               }
@@ -384,30 +343,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              // Generate dice roll
+              if (currentPlayer.hasRolledThisTurn) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'You have already rolled this turn. End your turn to continue.'
+                }));
+                break;
+              }
+
               const dice1 = Math.floor(Math.random() * 6) + 1;
               const dice2 = Math.floor(Math.random() * 6) + 1;
               const total = dice1 + dice2;
 
-              // Calculate new position
               let newPosition = (currentPlayer.position + total) % 40;
               
-              // Check if passed START (collect ₹2000)
               let passedStart = false;
+              let newMoney = currentPlayer.money;
               if (currentPlayer.position + total >= 40) {
                 passedStart = true;
-                await storage.updatePlayer(ws.roomId, ws.playerId, { 
-                  money: currentPlayer.money + 2000 
-                });
+                newMoney += 2000;
               }
 
-              // Update player position
-              await storage.updatePlayer(ws.roomId, ws.playerId, { 
-                position: newPosition 
+              await storage.updatePlayer(ws.roomId, ws.playerId, {
+                position: newPosition,
+                money: newMoney,
+                hasRolledThisTurn: true
               });
 
               const updatedRoom = await storage.getRoom(ws.roomId);
-
               broadcastToRoom(ws.roomId, {
                 type: 'diceRolled',
                 room: updatedRoom,
@@ -435,21 +398,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (!room || room.gameState !== 'playing') break;
 
               const currentPlayer = room.players[room.currentPlayerIndex];
-              if (currentPlayer.id !== ws.playerId) break;
+              if (currentPlayer.id !== ws.playerId) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Not your turn'
+                }));
+                break;
+              }
 
-              // Move to next player
+              await storage.updatePlayer(ws.roomId, ws.playerId, {
+                hasRolledThisTurn: false
+              });
+
               const nextPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length;
-              await storage.updateRoom(ws.roomId, { 
+              const nextTurnNumber = nextPlayerIndex === 0 ? room.turnNumber + 1 : room.turnNumber;
+              
+              await storage.updateGameState(ws.roomId, {
                 currentPlayerIndex: nextPlayerIndex,
-                turnNumber: room.turnNumber + 1
+                turnNumber: nextTurnNumber
               });
 
               const updatedRoom = await storage.getRoom(ws.roomId);
-
               broadcastToRoom(ws.roomId, {
                 type: 'turnEnded',
                 room: updatedRoom,
-                nextPlayerId: room.players[nextPlayerIndex].id
+                previousPlayerId: ws.playerId,
+                nextPlayerId: updatedRoom!.players[nextPlayerIndex].id
               });
 
             } catch (error) {
@@ -462,14 +436,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'buyProperty':
             try {
-              const { propertyIndex, price } = message;
               if (!ws.roomId || !ws.playerId) break;
 
+              const { propertyIndex, price } = message;
               const room = await storage.getRoom(ws.roomId);
-              if (!room) break;
+              if (!room || room.gameState !== 'playing') break;
 
-              const player = room.players.find(p => p.id === ws.playerId);
-              if (!player || player.money < price) {
+              const currentPlayer = room.players.find(p => p.id === ws.playerId);
+              if (!currentPlayer || currentPlayer.money < price) {
                 ws.send(JSON.stringify({
                   type: 'error',
                   message: 'Insufficient funds'
@@ -477,14 +451,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 break;
               }
 
-              // Update player money and properties
+              const isOwned = room.players.some(p => p.properties.includes(propertyIndex));
+              if (isOwned) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Property already owned'
+                }));
+                break;
+              }
+
               await storage.updatePlayer(ws.roomId, ws.playerId, {
-                money: player.money - price,
-                properties: [...player.properties, propertyIndex]
+                money: currentPlayer.money - price,
+                properties: [...currentPlayer.properties, propertyIndex]
               });
 
               const updatedRoom = await storage.getRoom(ws.roomId);
-
               broadcastToRoom(ws.roomId, {
                 type: 'propertyBought',
                 room: updatedRoom,
@@ -503,9 +484,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'sendMessage':
             try {
-              const { message: messageText } = message;
               if (!ws.roomId || !ws.playerId) break;
 
+              const { message: messageText } = message;
               const room = await storage.getRoom(ws.roomId);
               if (!room) break;
 
@@ -533,56 +514,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }));
             }
             break;
+
+          default:
+            console.log('Unknown message type:', message.type);
+            break;
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
         ws.send(JSON.stringify({
           type: 'error',
-          message: 'Invalid message format'
+          message: 'Failed to process message'
         }));
       }
     });
 
-    ws.on('close', async () => {
+    ws.on('close', () => {
+      console.log('WebSocket disconnected');
+      
       connections.delete(connectionId);
       
       if (ws.roomId) {
         const roomClients = roomConnections.get(ws.roomId);
         if (roomClients) {
           roomClients.delete(connectionId);
+        }
+        
+        if (ws.playerId) {
+          storage.updatePlayer(ws.roomId, ws.playerId, { isConnected: false }).catch(console.error);
           
-          if (ws.playerId) {
-            // Mark player as disconnected
-            await storage.updatePlayer(ws.roomId, ws.playerId, { isConnected: false });
-            
-            const room = await storage.getRoom(ws.roomId);
-            if (room) {
-              // If host disconnected, set room to expire in 2 hours
-              if (room.hostId === ws.playerId) {
-                await storage.setRoomExpiration(ws.roomId, 2);
-                console.log(`Host disconnected from room ${room.code}, room will expire in 2 hours`);
-              }
+          storage.getRoom(ws.roomId).then(room => {
+            if (room && room.hostId === ws.playerId) {
+              console.log(`Host disconnected from room ${room.code}, room will expire in 2 hours`);
+              storage.setRoomExpiration(room.id, 2).catch(console.error);
               
-              broadcastToRoom(ws.roomId, {
-                type: 'playerDisconnected',
-                room,
-                playerId: ws.playerId
-              });
+              broadcastToRoom(ws.roomId!, {
+                type: 'hostDisconnected',
+                message: 'Host has disconnected. Room will expire in 2 hours.'
+              }, connectionId);
             }
-          }
+          }).catch(console.error);
         }
       }
     });
   });
 
-  // REST API routes for room management
+  // HTTP Routes
   app.post('/api/rooms', async (req, res) => {
     try {
-      const { hostName } = req.body;
-      const room = await storage.createRoom({ hostId: hostName, maxPlayers: 8 });
-      res.json(room);
+      const { hostId, maxPlayers } = req.body;
+      const room = await storage.createRoom(hostId);
+      res.json({ success: true, room });
     } catch (error) {
-      res.status(400).json({ message: 'Failed to create room' });
+      console.error('Create room error:', error);
+      res.status(500).json({ success: false, error: 'Failed to create room' });
     }
   });
 
@@ -590,11 +574,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const room = await storage.getRoomByCode(req.params.code);
       if (!room) {
-        return res.status(404).json({ message: 'Room not found' });
+        return res.status(404).json({ success: false, error: 'Room not found' });
       }
-      res.json(room);
+      res.json({ success: true, room });
     } catch (error) {
-      res.status(500).json({ message: 'Server error' });
+      console.error('Get room error:', error);
+      res.status(500).json({ success: false, error: 'Failed to get room' });
     }
   });
 

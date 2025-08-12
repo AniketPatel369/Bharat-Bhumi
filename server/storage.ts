@@ -105,6 +105,7 @@ export class MemStorage implements IStorage {
       properties: [],
       isReady: false,
       isConnected: true,
+      hasRolledThisTurn: false,
     };
 
     room.players.push(player);
@@ -182,6 +183,7 @@ export class MemStorage implements IStorage {
       player.properties = [];
       player.isInJail = false;
       player.jailTurns = 0;
+      player.hasRolledThisTurn = false;
     });
 
     this.rooms.set(roomId, room);

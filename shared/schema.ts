@@ -16,6 +16,7 @@ export const playerSchema = insertPlayerSchema.extend({
   properties: z.array(z.number()).default([]),
   isReady: z.boolean().default(false),
   isConnected: z.boolean().default(true),
+  hasRolledThisTurn: z.boolean().default(false),
 });
 
 // Room related schemas
