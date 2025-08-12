@@ -37,6 +37,7 @@ export default function Game({ roomCode }: GameProps) {
       const data = JSON.parse(event.data);
       
       switch (data.type) {
+        case 'roomJoined':
         case 'gameStarted':
         case 'diceRolled':
         case 'turnEnded':
@@ -67,11 +68,36 @@ export default function Game({ roomCode }: GameProps) {
             description: data.message,
             variant: "destructive",
           });
+          // If room not found, redirect to home
+          if (data.message === 'Room not found' || data.message === 'Player not found in room') {
+            setTimeout(() => setLocation('/'), 2000);
+          }
           break;
       }
     };
 
     socket.addEventListener('message', handleMessage);
+    
+    // Auto-rejoin the game room
+    const playerId = localStorage.getItem('playerId');
+    const playerName = localStorage.getItem('playerName');
+    
+    if (!playerId || !playerName) {
+      toast({
+        title: "No Player Data",
+        description: "Please create or join a room first",
+        variant: "destructive",
+      });
+      setLocation('/');
+      return;
+    }
+
+    // Join the game room
+    socket.send(JSON.stringify({
+      type: 'rejoinRoom',
+      roomCode: roomCode,
+      playerId: playerId
+    }));
 
     return () => {
       socket.removeEventListener('message', handleMessage);
