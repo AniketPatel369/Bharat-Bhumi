@@ -42,11 +42,37 @@ export default function Lobby({ roomCode }: LobbyProps) {
             description: data.message,
             variant: "destructive",
           });
+          // If room not found or can't join, redirect to home
+          if (data.message === 'Room not found' || data.message === 'Failed to join room') {
+            setTimeout(() => setLocation('/'), 2000);
+          }
           break;
       }
     };
 
     socket.addEventListener('message', handleMessage);
+
+    // Auto-join room if we have player data
+    const playerId = localStorage.getItem('playerId');
+    const playerName = localStorage.getItem('playerName');
+    
+    if (!playerId || !playerName) {
+      // If no player data, redirect to home to create/join
+      toast({
+        title: "No Player Data",
+        description: "Please create or join a room first",
+        variant: "destructive",
+      });
+      setLocation('/');
+      return;
+    }
+
+    // Try to rejoin the room
+    socket.send(JSON.stringify({
+      type: 'rejoinRoom',
+      roomCode: roomCode,
+      playerId: playerId
+    }));
 
     return () => {
       socket.removeEventListener('message', handleMessage);

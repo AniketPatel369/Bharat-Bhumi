@@ -152,6 +152,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             break;
 
+          case 'rejoinRoom':
+            try {
+              const { roomCode, playerId } = message;
+              const room = await storage.getRoomByCode(roomCode);
+              
+              if (!room) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Room not found'
+                }));
+                break;
+              }
+
+              // Check if player exists in room
+              const existingPlayer = room.players.find(p => p.id === playerId);
+              if (!existingPlayer) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Player not found in room'
+                }));
+                break;
+              }
+
+              // Update player connection status
+              await storage.updatePlayer(room.id, playerId, { isConnected: true });
+              
+              // Set WebSocket properties
+              ws.roomId = room.id;
+              ws.playerId = playerId;
+
+              // Add to room connections
+              if (!roomConnections.has(room.id)) {
+                roomConnections.set(room.id, new Set());
+              }
+              roomConnections.get(room.id)!.add(connectionId);
+
+              const updatedRoom = await storage.getRoom(room.id);
+              
+              // Send room data to rejoining player
+              ws.send(JSON.stringify({
+                type: 'roomJoined',
+                room: updatedRoom,
+                playerId: playerId
+              }));
+
+              // Broadcast player reconnected to room
+              broadcastToRoom(room.id, {
+                type: 'playerJoined',
+                room: updatedRoom,
+                player: existingPlayer
+              }, connectionId);
+
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to rejoin room'
+              }));
+            }
+            break;
+
           case 'playerReady':
             try {
               const { playerId, isReady } = message;
