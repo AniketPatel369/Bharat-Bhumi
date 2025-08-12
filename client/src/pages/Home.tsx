@@ -52,8 +52,6 @@ export default function Home() {
     socket.send(JSON.stringify({
       type: 'createRoom',
       hostName: playerName.trim(),
-      hostColor: selectedColor.value,
-      hostAvatar: selectedColor.name.charAt(0),
       maxPlayers: maxPlayers
     }));
 
@@ -109,9 +107,7 @@ export default function Home() {
     socket.send(JSON.stringify({
       type: 'joinRoom',
       roomCode: roomCode.trim().toUpperCase(),
-      playerName: playerName.trim(),
-      playerColor: selectedColor.value,
-      playerAvatar: selectedColor.name.charAt(0)
+      playerName: playerName.trim()
     }));
 
     // Listen for room join response
@@ -208,24 +204,7 @@ export default function Home() {
                 </select>
               </div>
 
-              <div>
-                <Label data-testid="label-player-color">Choose Your Color</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {playerColors.map((color) => (
-                    <button
-                      key={color.value}
-                      data-testid={`button-color-${color.name.toLowerCase()}`}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-12 h-12 rounded-full border-4 ${color.bg} transition-all ${
-                        selectedColor.value === color.value
-                          ? "border-navy scale-110"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
+
 
               <div className="flex gap-2 pt-4">
                 <Button
@@ -283,24 +262,7 @@ export default function Home() {
                 />
               </div>
               
-              <div>
-                <Label data-testid="label-join-color">Choose Your Color</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {playerColors.map((color) => (
-                    <button
-                      key={color.value}
-                      data-testid={`button-join-color-${color.name.toLowerCase()}`}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-12 h-12 rounded-full border-4 ${color.bg} transition-all ${
-                        selectedColor.value === color.value
-                          ? "border-navy scale-110"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
+
 
               <div className="flex gap-2 pt-4">
                 <Button

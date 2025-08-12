@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/hooks/use-toast";
 import { Room, Player } from "@shared/schema";
@@ -15,8 +16,20 @@ export default function Lobby({ roomCode }: LobbyProps) {
   const [, setLocation] = useLocation();
   const [room, setRoom] = useState<Room | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [selectedColor, setSelectedColor] = useState("");
   const { socket, isConnected } = useSocket();
   const { toast } = useToast();
+
+  const playerColors = [
+    { name: "Red", value: "#EF4444", bg: "bg-red-500" },
+    { name: "Blue", value: "#3B82F6", bg: "bg-blue-500" },
+    { name: "Green", value: "#22C55E", bg: "bg-green-500" },
+    { name: "Purple", value: "#A855F7", bg: "bg-purple-500" },
+    { name: "Orange", value: "#F97316", bg: "bg-orange-500" },
+    { name: "Pink", value: "#EC4899", bg: "bg-pink-500" },
+    { name: "Cyan", value: "#06B6D4", bg: "bg-cyan-500" },
+    { name: "Yellow", value: "#EAB308", bg: "bg-yellow-500" },
+  ];
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -29,11 +42,35 @@ export default function Lobby({ roomCode }: LobbyProps) {
         case 'playerJoined':
         case 'playerReadyChanged':
         case 'playerDisconnected':
+        case 'playerColorChanged':
+        case 'playerKicked':
           setRoom(data.room);
+          // Update current player if this is our player data
+          const playerId = localStorage.getItem('playerId');
+          if (playerId && data.room) {
+            const player = data.room.players.find((p: Player) => p.id === playerId);
+            if (player) {
+              setCurrentPlayer(player);
+              if (player.color && !selectedColor) {
+                setSelectedColor(player.color);
+              }
+            }
+          }
           break;
           
         case 'gameStarted':
           setLocation(`/game/${roomCode}`);
+          break;
+          
+        case 'kicked':
+          toast({
+            title: "Kicked from Room",
+            description: "You have been removed from the room by the host",
+            variant: "destructive",
+          });
+          localStorage.removeItem('playerId');
+          localStorage.removeItem('playerName');
+          setTimeout(() => setLocation('/'), 2000);
           break;
           
         case 'error':
@@ -79,6 +116,39 @@ export default function Lobby({ roomCode }: LobbyProps) {
     };
   }, [socket, isConnected, roomCode, setLocation, toast]);
 
+  // Helper functions for actions
+  const handleColorChange = (color: string) => {
+    if (!socket || !currentPlayer || selectedColor === color) return;
+    
+    socket.send(JSON.stringify({
+      type: 'changeColor',
+      playerId: currentPlayer.id,
+      color: color
+    }));
+    setSelectedColor(color);
+  };
+
+  const handleKickPlayer = (playerToKickId: string) => {
+    if (!socket || !currentPlayer) return;
+    
+    socket.send(JSON.stringify({
+      type: 'kickPlayer',
+      hostId: currentPlayer.id,
+      playerToKickId: playerToKickId
+    }));
+  };
+
+  // Get available colors (not already taken by other players)
+  const getAvailableColors = () => {
+    if (!room) return playerColors;
+    
+    const usedColors = room.players
+      .filter(p => p.id !== currentPlayer?.id && p.color)
+      .map(p => p.color);
+    
+    return playerColors.filter(color => !usedColors.includes(color.value));
+  };
+
   useEffect(() => {
     const playerId = localStorage.getItem('playerId');
     if (room && playerId) {
@@ -98,10 +168,11 @@ export default function Lobby({ roomCode }: LobbyProps) {
   };
 
   const handleStartGame = () => {
-    if (!socket) return;
+    if (!socket || !currentPlayer) return;
 
     socket.send(JSON.stringify({
-      type: 'startGame'
+      type: 'startGame',
+      hostId: currentPlayer.id
     }));
   };
 
@@ -178,38 +249,70 @@ export default function Lobby({ roomCode }: LobbyProps) {
                     Players ({room.players.length}/{room.maxPlayers})
                   </h3>
                   <div className="space-y-3">
-                    {room.players.map((player) => (
+                    {room.players.map((player, index) => (
                       <div key={player.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                            style={{ backgroundColor: player.color }}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                              !player.color ? 'bg-gray-400' : ''
+                            }`}
+                            style={{ backgroundColor: player.color || '#9CA3AF' }}
                             data-testid={`player-token-${player.name}`}
                           >
                             {player.avatar}
                           </div>
                           <div>
-                            <p className="font-semibold" data-testid={`text-player-name-${player.name}`}>
-                              {player.name}
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold" data-testid={`text-player-name-${player.name}`}>
+                                {player.name}
+                              </span>
                               {player.id === room.hostId && (
-                                <Badge variant="secondary" className="ml-2">Host</Badge>
+                                <Badge variant="secondary">Host</Badge>
                               )}
                               {player.id === currentPlayer?.id && (
-                                <Badge variant="outline" className="ml-2">You</Badge>
+                                <Badge variant="outline">You</Badge>
                               )}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {player.isConnected ? "Online" : "Disconnected"}
-                            </p>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {!player.isConnected ? "Disconnected" : 
+                               !player.color ? "Choose a color" :
+                               player.isReady ? "Ready to play!" : "Not ready"
+                              }
+                            </div>
                           </div>
                         </div>
-                        <Badge
-                          variant={player.isReady ? "default" : "outline"}
-                          className={player.isReady ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
-                          data-testid={`status-ready-${player.name}`}
-                        >
-                          {player.isReady ? "Ready" : "Not Ready"}
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          {player.isConnected && player.color && (
+                            <Badge
+                              variant={player.isReady ? "default" : "outline"}
+                              className={player.isReady ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                              data-testid={`status-ready-${player.name}`}
+                            >
+                              {player.isReady ? "Ready" : "Not Ready"}
+                            </Badge>
+                          )}
+                          {player.id === currentPlayer?.id && player.color && (
+                            <Button
+                              onClick={handleToggleReady}
+                              size="sm"
+                              variant={currentPlayer.isReady ? "outline" : "default"}
+                              className={currentPlayer.isReady ? "hover:bg-red-50" : "bg-green-600 hover:bg-green-700"}
+                              data-testid="button-toggle-ready"
+                            >
+                              {currentPlayer.isReady ? "Not Ready" : "Ready Up"}
+                            </Button>
+                          )}
+                          {isHost && player.id !== currentPlayer?.id && (
+                            <Button
+                              onClick={() => handleKickPlayer(player.id)}
+                              size="sm"
+                              variant="destructive"
+                              data-testid={`button-kick-${index}`}
+                            >
+                              Kick
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                     
@@ -225,10 +328,36 @@ export default function Lobby({ roomCode }: LobbyProps) {
                   </div>
                 </div>
                 
-                {/* Game Settings */}
+                {/* Color Selection & Game Controls */}
                 <div>
-                  <h3 className="font-semibold text-lg mb-4 text-dark-slate">Game Settings</h3>
+                  <h3 className="font-semibold text-lg mb-4 text-dark-slate">Your Settings</h3>
                   <div className="space-y-4">
+                    {/* Color Selection for Current Player */}
+                    {currentPlayer && !currentPlayer.color && (
+                      <div className="bg-white p-4 rounded-lg border-2 border-saffron">
+                        <Label className="text-sm font-medium mb-3 block">Choose Your Color</Label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {getAvailableColors().map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => handleColorChange(color.value)}
+                              className={`w-12 h-12 rounded-full border-4 ${color.bg} transition-all hover:scale-110 ${
+                                selectedColor === color.value
+                                  ? "border-navy scale-110"
+                                  : "border-gray-300 hover:border-gray-400"
+                              }`}
+                              title={color.name}
+                              data-testid={`button-select-color-${color.name.toLowerCase()}`}
+                            />
+                          ))}
+                        </div>
+                        {getAvailableColors().length === 0 && (
+                          <p className="text-sm text-gray-500 mt-2">No available colors. Please wait for other players to choose.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Game Settings Info */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-2">Room Code</p>
                       <p className="font-mono text-xl font-bold text-navy" data-testid="text-room-code-detail">{room.code}</p>
@@ -256,42 +385,53 @@ export default function Lobby({ roomCode }: LobbyProps) {
               </div>
               
               {/* Action Buttons */}
-              <div className="mt-6 flex justify-center gap-4">
-                {currentPlayer && !isHost && (
-                  <Button
-                    data-testid="button-toggle-ready"
-                    onClick={handleToggleReady}
-                    className={currentPlayer.isReady 
-                      ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
-                      : "bg-indian-green hover:bg-green-700 text-white"
-                    }
-                  >
-                    <i className={`fas ${currentPlayer.isReady ? "fa-pause" : "fa-check-circle"} mr-2`}></i>
-                    {currentPlayer.isReady ? "Not Ready" : "Ready to Play"}
-                  </Button>
-                )}
-                
-                {isHost && (
-                  <>
+              <div className="mt-6 text-center">
+                <div className="flex justify-center gap-4">
+                  {isHost ? (
                     <Button
-                      data-testid="button-start-game"
                       onClick={handleStartGame}
-                      disabled={!allReady || !minPlayers}
-                      className="bg-saffron hover:bg-orange-600 text-white px-8 py-3"
+                      disabled={!allReady || !minPlayers || !room.players.every(p => p.color)}
+                      size="lg"
+                      className="bg-saffron hover:bg-orange-600 text-white px-8"
+                      data-testid="button-start-game"
                     >
                       <i className="fas fa-play mr-2"></i>
                       Start Game
                     </Button>
-                    {(!allReady || !minPlayers) && (
-                      <p className="text-sm text-gray-500 self-center" data-testid="text-start-requirements">
-                        {!minPlayers 
-                          ? "Need at least 2 players to start" 
-                          : "All players must be ready to start"
-                        }
-                      </p>
-                    )}
-                  </>
-                )}
+                  ) : (
+                    currentPlayer && currentPlayer.color && (
+                      <Button
+                        onClick={handleToggleReady}
+                        variant={currentPlayer.isReady ? "destructive" : "default"}
+                        size="lg"
+                        className={currentPlayer.isReady ? "" : "bg-green-600 hover:bg-green-700"}
+                        data-testid="button-player-ready"
+                      >
+                        <i className={`fas ${currentPlayer.isReady ? 'fa-times' : 'fa-check'} mr-2`}></i>
+                        {currentPlayer.isReady ? "Not Ready" : "Ready Up"}
+                      </Button>
+                    )
+                  )}
+                </div>
+                
+                {/* Status Messages */}
+                <div className="mt-4 text-sm text-gray-600">
+                  {isHost && !minPlayers && (
+                    <p data-testid="message-min-players">Need at least 2 players to start</p>
+                  )}
+                  {isHost && minPlayers && !room.players.every(p => p.color) && (
+                    <p data-testid="message-choose-colors">All players must choose colors first</p>
+                  )}
+                  {isHost && minPlayers && room.players.every(p => p.color) && !allReady && (
+                    <p data-testid="message-waiting-players">Waiting for all players to be ready...</p>
+                  )}
+                  {!isHost && currentPlayer && !currentPlayer.color && (
+                    <p data-testid="message-choose-color">Please choose your color first</p>
+                  )}
+                  {!isHost && currentPlayer && currentPlayer.color && (
+                    <p data-testid="message-waiting-host">Waiting for host to start the game...</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

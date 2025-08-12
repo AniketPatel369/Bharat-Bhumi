@@ -52,14 +52,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         switch (message.type) {
           case 'createRoom':
             try {
-              const { hostName, hostColor, hostAvatar, maxPlayers = 8 } = message;
+              const { hostName, maxPlayers = 8 } = message;
               const room = await storage.createRoom({ hostId: '', maxPlayers: maxPlayers });
               
-              // Add host as first player
+              // Add host as first player (without color initially)
               const host = await storage.addPlayerToRoom(room.id, {
                 name: hostName,
-                color: hostColor,
-                avatar: hostAvatar
+                color: '', // Will be set later in lobby
+                avatar: hostName.charAt(0).toUpperCase()
               });
 
               if (host) {
@@ -93,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'joinRoom':
             try {
-              const { roomCode, playerName, playerColor, playerAvatar } = message;
+              const { roomCode, playerName } = message;
               const room = await storage.getRoomByCode(roomCode);
               
               if (!room) {
@@ -122,8 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               const player = await storage.addPlayerToRoom(room.id, {
                 name: playerName,
-                color: playerColor,
-                avatar: playerAvatar
+                color: '', // Will be set later in lobby
+                avatar: playerName.charAt(0).toUpperCase()
               });
 
               if (player) {
@@ -216,6 +216,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ws.send(JSON.stringify({
                 type: 'error',
                 message: 'Failed to rejoin room'
+              }));
+            }
+            break;
+
+          case 'changeColor':
+            try {
+              const { playerId, color } = message;
+              if (!ws.roomId || !ws.playerId) break;
+              
+              // Check if color is already taken
+              const room = await storage.getRoom(ws.roomId);
+              if (room) {
+                const colorTaken = room.players.some(p => p.id !== playerId && p.color === color);
+                if (colorTaken) {
+                  ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Color already taken by another player'
+                  }));
+                  break;
+                }
+                
+                // Update player color
+                await storage.updatePlayer(ws.roomId, playerId, { color });
+                
+                const updatedRoom = await storage.getRoom(ws.roomId);
+                broadcastToRoom(ws.roomId, {
+                  type: 'playerColorChanged',
+                  room: updatedRoom,
+                  playerId
+                });
+              }
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to change color'
+              }));
+            }
+            break;
+
+          case 'kickPlayer':
+            try {
+              const { hostId, playerToKickId } = message;
+              const room = await storage.getRoom(ws.roomId!);
+              
+              if (!room || room.hostId !== hostId) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Only host can kick players'
+                }));
+                break;
+              }
+              
+              // Find the kicked player's connection
+              const kickedPlayerConnection = Array.from(connections.entries()).find(
+                ([_, ws]) => ws.playerId === playerToKickId && ws.roomId === room.id
+              );
+              
+              if (kickedPlayerConnection) {
+                const [kickedConnectionId, kickedWs] = kickedPlayerConnection;
+                
+                // Send kick message to kicked player
+                kickedWs.send(JSON.stringify({
+                  type: 'kicked',
+                  message: 'You have been kicked from the room'
+                }));
+                
+                // Remove from connections
+                connections.delete(kickedConnectionId);
+                const roomClients = roomConnections.get(room.id);
+                if (roomClients) {
+                  roomClients.delete(kickedConnectionId);
+                }
+              }
+              
+              // Remove player from room
+              await storage.removePlayer(ws.roomId!, playerToKickId);
+              
+              const updatedRoom = await storage.getRoom(ws.roomId!);
+              broadcastToRoom(ws.roomId!, {
+                type: 'playerKicked',
+                room: updatedRoom,
+                kickedPlayerId: playerToKickId
+              });
+              
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to kick player'
               }));
             }
             break;

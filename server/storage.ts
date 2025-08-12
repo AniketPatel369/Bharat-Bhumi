@@ -124,6 +124,20 @@ export class MemStorage implements IStorage {
     return room.players[playerIndex];
   }
 
+  async removePlayer(roomId: string, playerId: string): Promise<boolean> {
+    const room = this.rooms.get(roomId);
+    if (!room) return false;
+
+    const playerIndex = room.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return false;
+
+    // Remove the player
+    room.players.splice(playerIndex, 1);
+    
+    this.rooms.set(roomId, room);
+    return true;
+  }
+
   async removePlayerFromRoom(roomId: string, playerId: string): Promise<boolean> {
     const room = this.rooms.get(roomId);
     if (!room) return false;
