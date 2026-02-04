@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyapaar - Indian Monopoly Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'saffron': '#FF6B35',
+                        'indian-green': '#138808',
+                        'navy': '#000080',
+                        'cream': '#F5F5DC',
+                        'slate-dark': '#2F4F4F',
+                        'board-green': '#228B22'
+                    },
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif'],
+                        'roboto': ['Roboto', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-cream min-h-screen font-roboto">
+    <!-- @COMPONENT: GameContainer [main game layout] -->
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- Header -->
+        <!-- @COMPONENT: GameHeader [game title and room info] -->
+        <header class="bg-navy text-white p-4 rounded-lg mb-4 shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-3 mb-2 md:mb-0">
+                    <i class="fas fa-chess-board text-2xl text-saffron"></i>
+                    <h1 class="text-3xl font-poppins font-bold text-saffron">VYAPAAR</h1>
+                    <span class="text-sm bg-indian-green px-2 py-1 rounded">Room: ABC123</span>
+                </div>
+                <div class="flex items-center space-x-4 text-sm">
+                    <span class="flex items-center">
+                        <i class="fas fa-users mr-1"></i>
+                        4/8 Players
+                    </span>
+                    <span class="flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        Turn: Aniket
+                    </span>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: GameHeader -->
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <!-- Left Sidebar - Players List -->
+            <!-- @COMPONENT: PlayersPanel [player list and status] -->
+            <div class="lg:col-span-1 order-2 lg:order-1">
+                <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+                    <h3 class="text-lg font-poppins font-semibold text-slate-dark mb-3 flex items-center">
+                        <i class="fas fa-users mr-2 text-navy"></i>
+                        Players
+                    </h3>
+                    
+                    <!-- @MAP: players.map(player => ( -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 border-l-4 border-saffron bg-saffron bg-opacity-10 rounded" data-bind="currentPlayer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-saffron rounded-full flex items-center justify-center">
+                                    <i class="fas fa-hat-cowboy text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-dark" data-bind="player.name">Aniket</div>
+                                    <div class="text-sm text-indian-green font-medium" data-bind="player.money">₹15,000</div>
+                                </div>
+                            </div>
+                            <div class="text-xs bg-indian-green text-white px-2 py-1 rounded">Your Turn</div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 border-l-4 border-indian-green bg-gray-50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-indian-green rounded-full flex items-center justify-center">
+                                    <i class="fas fa-car text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-dark">Pooja</div>
+                                    <div class="text-sm text-indian-green font-medium">₹12,800</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500">Waiting</div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 border-l-4 border-navy bg-gray-50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-navy rounded-full flex items-center justify-center">
+                                    <i class="fas fa-ship text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-dark">Sam</div>
+                                    <div class="text-sm text-indian-green font-medium">₹9,500</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500">Waiting</div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 border-l-4 border-purple-500 bg-gray-50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-rocket text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-dark">Rohan</div>
+                                    <div class="text-sm text-indian-green font-medium">₹11,200</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500">Waiting</div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Player Properties -->
+                <!-- @COMPONENT: PlayerProperties [owned properties display] -->
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-poppins font-semibold text-slate-dark mb-3 flex items-center">
+                        <i class="fas fa-building mr-2 text-navy"></i>
+                        Your Properties
+                    </h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center p-2 bg-red-50 border-l-4 border-red-500 rounded">
+                            <span class="text-sm font-medium">Mumbai</span>
+                            <span class="text-xs text-green-600">₹200/turn</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-blue-50 border-l-4 border-blue-500 rounded">
+                            <span class="text-sm font-medium">Bangalore</span>
+                            <span class="text-xs text-green-600">₹150/turn</span>
+                        </div>
+                        <div class="text-center text-gray-500 text-sm py-2">
+                            Total Rent: ₹350/turn
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: PlayerProperties -->
+            </div>
+            <!-- @END_COMPONENT: PlayersPanel -->
+
+            <!-- Game Board -->
+            <!-- @COMPONENT: GameBoard [main monopoly board] -->
+            <div class="lg:col-span-2 order-1 lg:order-2">
+                <div class="bg-board-green p-4 rounded-lg shadow-xl">
+                    <!-- Board Grid -->
+                    <div class="grid grid-cols-11 gap-1 bg-white p-2 rounded">
+                        <!-- Top Row -->
+                        <div class="bg-red-500 text-white text-center p-2 rounded text-xs font-bold">FREE PARKING</div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">KERALA</div>
+                            <div class="text-xs">₹220</div>
+                        </div>
+                        <div class="bg-yellow-100 border-2 border-yellow-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">CHANCE</div>
+                            <i class="fas fa-question text-yellow-600"></i>
+                        </div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">GOA</div>
+                            <div class="text-xs">₹220</div>
+                        </div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">PUNJAB</div>
+                            <div class="text-xs">₹240</div>
+                        </div>
+                        <div class="bg-gray-100 border-2 border-gray-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">RAILWAY</div>
+                            <i class="fas fa-train text-gray-600"></i>
+                        </div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">RAJASTHAN</div>
+                            <div class="text-xs">₹260</div>
+                        </div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">UP</div>
+                            <div class="text-xs">₹260</div>
+                        </div>
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">UTILITY</div>
+                            <i class="fas fa-bolt text-blue-600"></i>
+                        </div>
+                        <div class="bg-red-100 border-2 border-red-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-red-700">BIHAR</div>
+                            <div class="text-xs">₹280</div>
+                        </div>
+                        <div class="bg-red-500 text-white text-center p-2 rounded text-xs font-bold">GO TO JAIL</div>
+
+                        <!-- Left Column -->
+                        <div class="bg-orange-100 border-2 border-orange-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-orange-700">KARNATAKA</div>
+                            <div class="text-xs">₹200</div>
+                        </div>
+                        <!-- Center Game Area -->
+                        <div class="col-span-9 row-span-9 bg-navy rounded-lg relative flex items-center justify-center">
+                            <!-- Game Logo -->
+                            <div class="text-center">
+                                <h2 class="text-4xl font-poppins font-bold text-saffron mb-4">VYAPAAR</h2>
+                                
+                                <!-- Dice Area -->
+                                <!-- @COMPONENT: DiceArea [dice rolling interface] -->
+                                <div class="mb-6">
+                                    <div class="flex justify-center space-x-4 mb-4">
+                                        <div class="w-12 h-12 bg-white rounded-lg shadow-lg flex items-center justify-center transform rotate-3">
+                                            <div class="grid grid-cols-2 gap-1 p-1">
+                                                <div class="w-2 h-2 bg-slate-dark rounded-full"></div>
+                                                <div class="w-2 h-2"></div>
+                                                <div class="w-2 h-2"></div>
+                                                <div class="w-2 h-2 bg-slate-dark rounded-full"></div>
+                                            </div>
+                                        </div>
+                                        <div class="w-12 h-12 bg-white rounded-lg shadow-lg flex items-center justify-center transform -rotate-2">
+                                            <div class="grid grid-cols-3 gap-1 p-1">
+                                                <div class="w-1.5 h-1.5 bg-slate-dark rounded-full"></div>
+                                                <div class="w-1.5 h-1.5"></div>
+                                                <div class="w-1.5 h-1.5 bg-slate-dark rounded-full"></div>
+                                                <div class="w-1.5 h-1.5"></div>
+                                                <div class="w-1.5 h-1.5 bg-slate-dark rounded-full"></div>
+                                                <div class="w-1.5 h-1.5"></div>
+                                                <div class="w-1.5 h-1.5 bg-slate-dark rounded-full"></div>
+                                                <div class="w-1.5 h-1.5"></div>
+                                                <div class="w-1.5 h-1.5 bg-slate-dark rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="bg-saffron hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-poppins font-medium transition-colors" data-event="click:rollDice">
+                                        <i class="fas fa-dice mr-2"></i>
+                                        Roll Dice
+                                    </button>
+                                </div>
+                                <!-- @END_COMPONENT: DiceArea -->
+
+                                <!-- Player Tokens in Center -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 bg-saffron rounded-full flex items-center justify-center mb-1">
+                                            <i class="fas fa-hat-cowboy text-white"></i>
+                                        </div>
+                                        <span class="text-white text-xs">Aniket</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 bg-indian-green rounded-full flex items-center justify-center mb-1">
+                                            <i class="fas fa-car text-white"></i>
+                                        </div>
+                                        <span class="text-white text-xs">Pooja</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mb-1">
+                                            <i class="fas fa-ship text-white"></i>
+                                        </div>
+                                        <span class="text-white text-xs">Sam</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-1">
+                                            <i class="fas fa-rocket text-white"></i>
+                                        </div>
+                                        <span class="text-white text-xs">Rohan</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-orange-100 border-2 border-orange-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-orange-700">ANDHRA</div>
+                            <div class="text-xs">₹200</div>
+                        </div>
+
+                        <!-- Additional rows for left and right columns -->
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">COMMUNITY</div>
+                            <i class="fas fa-heart text-blue-600"></i>
+                        </div>
+                        <div class="bg-orange-100 border-2 border-orange-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-orange-700">ODISHA</div>
+                            <div class="text-xs">₹180</div>
+                        </div>
+
+                        <div class="bg-orange-100 border-2 border-orange-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-orange-700">TELANGANA</div>
+                            <div class="text-xs">₹180</div>
+                        </div>
+                        <div class="bg-orange-100 border-2 border-orange-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-orange-700">TAMIL NADU</div>
+                            <div class="text-xs">₹160</div>
+                        </div>
+
+                        <div class="bg-gray-100 border-2 border-gray-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">RAILWAY</div>
+                            <i class="fas fa-train text-gray-600"></i>
+                        </div>
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-blue-700">WEST BENGAL</div>
+                            <div class="text-xs">₹140</div>
+                        </div>
+
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-blue-700">ASSAM</div>
+                            <div class="text-xs">₹140</div>
+                        </div>
+                        <div class="bg-yellow-100 border-2 border-yellow-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">CHANCE</div>
+                            <i class="fas fa-question text-yellow-600"></i>
+                        </div>
+
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-blue-700">JHARKHAND</div>
+                            <div class="text-xs">₹120</div>
+                        </div>
+                        <div class="bg-red-500 text-white text-center p-2 rounded text-xs font-bold">JAIL</div>
+
+                        <!-- Bottom Row -->
+                        <div class="bg-brown-100 border-2 border-yellow-600 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-yellow-700">CHHATTISGARH</div>
+                            <div class="text-xs">₹100</div>
+                        </div>
+                        <div class="bg-brown-100 border-2 border-yellow-600 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-yellow-700">MADHYA PRADESH</div>
+                            <div class="text-xs">₹100</div>
+                        </div>
+                        <div class="bg-blue-100 border-2 border-blue-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">COMMUNITY</div>
+                            <i class="fas fa-heart text-blue-600"></i>
+                        </div>
+                        <div class="bg-brown-100 border-2 border-yellow-600 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-yellow-700">UTTARAKHAND</div>
+                            <div class="text-xs">₹80</div>
+                        </div>
+                        <div class="bg-gray-100 border-2 border-gray-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">INCOME TAX</div>
+                            <div class="text-xs">₹200</div>
+                        </div>
+                        <div class="bg-gray-100 border-2 border-gray-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">RAILWAY</div>
+                            <i class="fas fa-train text-gray-600"></i>
+                        </div>
+                        <div class="bg-yellow-100 border-2 border-yellow-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">CHANCE</div>
+                            <i class="fas fa-question text-yellow-600"></i>
+                        </div>
+                        <div class="bg-brown-100 border-2 border-yellow-600 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-yellow-700">HARYANA</div>
+                            <div class="text-xs">₹60</div>
+                        </div>
+                        <div class="bg-gray-100 border-2 border-gray-500 p-1 rounded text-center">
+                            <div class="text-xs font-bold">LUXURY TAX</div>
+                            <div class="text-xs">₹100</div>
+                        </div>
+                        <div class="bg-brown-100 border-2 border-yellow-600 p-1 rounded text-center">
+                            <div class="text-xs font-bold text-yellow-700">DELHI</div>
+                            <div class="text-xs">₹60</div>
+                        </div>
+                        <div class="bg-indian-green text-white text-center p-2 rounded text-xs font-bold">
+                            <div>GO</div>
+                            <div class="text-xs">Collect ₹200</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: GameBoard -->
+
+            <!-- Right Sidebar - Game Info & Chat -->
+            <!-- @COMPONENT: GameInfoPanel [game status and chat] -->
+            <div class="lg:col-span-1 order-3">
+                <!-- Game Actions -->
+                <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+                    <h3 class="text-lg font-poppins font-semibold text-slate-dark mb-3 flex items-center">
+                        <i class="fas fa-gamepad mr-2 text-navy"></i>
+                        Game Actions
+                    </h3>
+                    <div class="space-y-2">
+                        <button class="w-full bg-indian-green hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors" data-event="click:buyProperty">
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            Buy Property
+                        </button>
+                        <button class="w-full bg-saffron hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors" data-event="click:endTurn">
+                            <i class="fas fa-forward mr-2"></i>
+                            End Turn
+                        </button>
+                        <button class="w-full bg-navy hover:bg-blue-800 text-white py-2 px-4 rounded-lg font-medium transition-colors" data-event="click:trade">
+                            <i class="fas fa-exchange-alt mr-2"></i>
+                            Trade
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Current Property Info -->
+                <!-- @COMPONENT: PropertyInfo [selected property details] -->
+                <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+                    <h3 class="text-lg font-poppins font-semibold text-slate-dark mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-navy"></i>
+                        Property Info
+                    </h3>
+                    <div class="border-l-4 border-red-500 bg-red-50 p-3 rounded">
+                        <h4 class="font-bold text-red-700 mb-2">Mumbai</h4>
+                        <div class="text-sm space-y-1">
+                            <div class="flex justify-between">
+                                <span>Price:</span>
+                                <span class="font-medium">₹400</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Rent:</span>
+                                <span class="font-medium">₹50</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Owner:</span>
+                                <span class="font-medium text-indian-green">Available</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-600">
+                            Land on this space to purchase or pay rent to the owner.
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: PropertyInfo -->
+
+                <!-- Chat -->
+                <!-- @COMPONENT: GameChat [in-game chat system] -->
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-poppins font-semibold text-slate-dark mb-3 flex items-center">
+                        <i class="fas fa-comments mr-2 text-navy"></i>
+                        Game Chat
+                    </h3>
+                    <div class="h-32 overflow-y-auto bg-gray-50 rounded p-2 mb-3 text-sm">
+                        <div class="mb-2">
+                            <span class="font-medium text-saffron">Aniket:</span>
+                            <span class="text-slate-dark ml-1">Hi everyone!</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium text-indian-green">Pooja:</span>
+                            <span class="text-slate-dark ml-1">Good luck all!</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium text-navy">Sam:</span>
+                            <span class="text-slate-dark ml-1">Let's play!</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium text-purple-600">Rohan:</span>
+                            <span class="text-slate-dark ml-1">Ready to win 🏆</span>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" placeholder="Type your message..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-navy" data-bind="chatMessage">
+                        <button class="bg-navy hover:bg-blue-800 text-white px-3 py-2 rounded transition-colors" data-event="click:sendMessage">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: GameChat -->
+            </div>
+            <!-- @END_COMPONENT: GameInfoPanel -->
+        </div>
+    </div>
+    <!-- @END_COMPONENT: GameContainer -->
+
+    <!-- Game Modals -->
+    <!-- @COMPONENT: GameModals [various game modal dialogs] -->
+    
+    <!-- Property Purchase Modal -->
+    <!-- @STATE: showPurchaseModal:boolean = false -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="purchaseModal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-building text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-poppins font-bold text-slate-dark mb-2">Purchase Property</h3>
+                <h4 class="text-lg font-medium text-red-700 mb-4">Mumbai</h4>
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span>Property Price:</span>
+                        <span class="font-bold text-lg">₹400</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span>Your Balance:</span>
+                        <span class="font-medium text-indian-green">₹15,000</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t pt-2">
+                        <span>After Purchase:</span>
+                        <span class="font-medium">₹14,600</span>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <button class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors" onclick="closePurchaseModal()">
+                        Cancel
+                    </button>
+                    <button class="flex-1 bg-indian-green hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors" data-event="click:confirmPurchase">
+                        Buy Property
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chance Card Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="chanceModal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-question text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-poppins font-bold text-slate-dark mb-4">Chance Card</h3>
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4 mb-4">
+                    <p class="text-slate-dark font-medium">
+                        "Advance to GO. Collect ₹200 as you pass."
+                    </p>
+                </div>
+                <button class="w-full bg-saffron hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors" onclick="closeChanceModal()">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="tradeModal">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <h3 class="text-xl font-poppins font-bold text-slate-dark mb-4 flex items-center">
+                <i class="fas fa-exchange-alt mr-2 text-navy"></i>
+                Trade with Player
+            </h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <h4 class="font-medium text-slate-dark mb-2">You Offer:</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span class="text-sm">Mumbai - ₹400</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span class="text-sm">₹500 Cash</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-medium text-slate-dark mb-2">You Want:</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span class="text-sm">Delhi - ₹200</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span class="text-sm">₹300 Cash</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors" onclick="closeTradeModal()">
+                    Cancel
+                </button>
+                <button class="flex-1 bg-navy hover:bg-blue-800 text-white py-2 px-4 rounded-lg font-medium transition-colors" data-event="click:proposeTrade">
+                    Propose Trade
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: GameModals -->
+
+    <script>
+        // TODO: Implement Socket.IO connection and game state management
+        // TODO: Implement real-time multiplayer communication
+        // TODO: Implement game logic for property transactions
+        // TODO: Implement dice rolling mechanics and player movement
+        // TODO: Implement turn-based gameplay system
+
+        // Basic modal functionality for demonstration
+        (function() {
+            // Modal functions
+            window.closePurchaseModal = function() {
+                document.getElementById('purchaseModal').classList.add('hidden');
+            };
+
+            window.closeChanceModal = function() {
+                document.getElementById('chanceModal').classList.add('hidden');
+            };
+
+            window.closeTradeModal = function() {
+                document.getElementById('tradeModal').classList.add('hidden');
+            };
+
+            // Demo button interactions
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-event]');
+                if (!target) return;
+
+                const event = target.getAttribute('data-event');
+                
+                switch(event) {
+                    case 'click:buyProperty':
+                        document.getElementById('purchaseModal').classList.remove('hidden');
+                        break;
+                    case 'click:trade':
+                        document.getElementById('tradeModal').classList.remove('hidden');
+                        break;
+                    case 'click:rollDice':
+                        // Animate dice roll
+                        target.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Rolling...';
+                        setTimeout(() => {
+                            target.innerHTML = '<i class="fas fa-dice mr-2"></i>Roll Dice';
+                            // Show chance card as demo
+                            document.getElementById('chanceModal').classList.remove('hidden');
+                        }, 1500);
+                        break;
+                }
+            });
+
+            // Chat functionality demo
+            const chatInput = document.querySelector('[data-bind="chatMessage"]');
+            const sendButton = document.querySelector('[data-event="click:sendMessage"]');
+            
+            function sendMessage() {
+                if (chatInput && chatInput.value.trim()) {
+                    // Demo: Add message to chat (in real app, this would go through Socket.IO)
+                    const chatArea = document.querySelector('.h-32.overflow-y-auto');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'mb-2';
+                    messageDiv.innerHTML = `
+                        <span class="font-medium text-saffron">You:</span>
+                        <span class="text-slate-dark ml-1">${chatInput.value}</span>
+                    `;
+                    chatArea.appendChild(messageDiv);
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                    chatInput.value = '';
+                }
+            }
+
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+            }
+
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

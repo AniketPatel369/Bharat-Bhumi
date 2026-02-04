@@ -1,6 +1,28 @@
 import { GameProperty } from "@shared/schema";
+import { BOARD_DATA, BoardSquare } from "@shared/boardData";
 
-export const GAME_PROPERTIES: GameProperty[] = [
+// Convert BoardSquare to GameProperty for backward compatibility
+function convertToGameProperty(square: BoardSquare): GameProperty {
+  return {
+    id: square.position,
+    name: square.name,
+    type: square.type === 'corner' || square.type === 'chance' || square.type === 'community' || square.type === 'tax'
+      ? 'special'
+      : square.type,
+    price: square.price,
+    rent: square.rent,
+    colorGroup: square.colorGroup || 'special',
+    houseCost: square.houseCost,
+    houses: 0,
+    mortgaged: false
+  };
+}
+
+export const GAME_PROPERTIES: GameProperty[] = BOARD_DATA.map(convertToGameProperty);
+
+// Legacy array kept for reference (now generated from BOARD_DATA)
+/*
+export const GAME_PROPERTIES_OLD: GameProperty[] = [
   // Bottom row (0-10) - START to JAIL
   {
     id: 0,
@@ -409,6 +431,7 @@ export const GAME_PROPERTIES: GameProperty[] = [
     mortgaged: false
   }
 ];
+*/
 
 export const CHANCE_CARDS = [
   "Advance to GO (Collect Rs. 2000)",

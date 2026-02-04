@@ -118,7 +118,12 @@
     font-family: var(--font-sans);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-sans);
   }
 }
@@ -170,11 +175,25 @@
 
 /* Dice roll animation */
 @keyframes dice-roll {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(90deg); }
-  50% { transform: rotate(180deg); }
-  75% { transform: rotate(270deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(90deg);
+  }
+
+  50% {
+    transform: rotate(180deg);
+  }
+
+  75% {
+    transform: rotate(270deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-dice-roll {
@@ -183,10 +202,27 @@
 
 /* Token movement animation */
 @keyframes token-bounce {
-  0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
-  40%, 43% { transform: translate3d(0,-5px,0); }
-  70% { transform: translate3d(0,-3px,0); }
-  90% { transform: translate3d(0,-1px,0); }
+
+  0%,
+  20%,
+  53%,
+  80%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  40%,
+  43% {
+    transform: translate3d(0, -5px, 0);
+  }
+
+  70% {
+    transform: translate3d(0, -3px, 0);
+  }
+
+  90% {
+    transform: translate3d(0, -1px, 0);
+  }
 }
 
 .animate-token-bounce {
@@ -195,8 +231,15 @@
 
 /* Slide up animation for mobile chat */
 @keyframes slide-up {
-  0% { transform: translateY(100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-slide-up {
@@ -204,32 +247,153 @@
 }
 
 /* Property color groups */
-.property-brown { @apply bg-amber-700; }
-.property-lightblue { @apply bg-sky-300; }
-.property-pink { @apply bg-pink-400; }
-.property-orange { @apply bg-orange-500; }
-.property-red { @apply bg-red-500; }
-.property-yellow { @apply bg-yellow-400; }
-.property-green { @apply bg-green-500; }
-.property-darkblue { @apply bg-blue-700; }
-.property-railroad { @apply bg-gray-700; }
-.property-utility { @apply bg-yellow-300; }
+.property-brown {
+  @apply bg-amber-700;
+}
+
+.property-lightblue {
+  @apply bg-sky-300;
+}
+
+.property-pink {
+  @apply bg-pink-400;
+}
+
+.property-orange {
+  @apply bg-orange-500;
+}
+
+.property-red {
+  @apply bg-red-500;
+}
+
+.property-yellow {
+  @apply bg-yellow-400;
+}
+
+.property-green {
+  @apply bg-green-500;
+}
+
+.property-darkblue {
+  @apply bg-blue-700;
+}
+
+.property-railroad {
+  @apply bg-gray-700;
+}
+
+.property-utility {
+  @apply bg-yellow-300;
+}
+
+/* Side-specific classes for board squares */
+.horizontal {
+  font-size: 8px;
+  text-align: center;
+}
+
+.vertical {
+  font-size: 8px;
+  text-align: center;
+}
+
+/* Text rotation classes - applied to text elements, NOT containers */
+.rotate90 {
+  writing-mode: vertical-rl;
+  min-height: calc(100% - 5px);
+  justify-content: center;
+}
+
+.rotate180 {
+  transform: rotate(180deg);
+}
+
+.rotate270 {
+  writing-mode: vertical-rl;
+  min-height: calc(100% - 5px);
+  justify-content: center;
+  transform: rotate(180deg);
+}
+
+/* Color bar base */
+.color-bar {
+  position: absolute;
+}
+
+/* Color bar sizing */
+.horizontal .color-bar {
+  width: 100%;
+  height: 20%;
+}
+
+.vertical .color-bar {
+  width: 20%;
+  height: 100%;
+}
+
+/* Color bar positioning for each side */
+.horizontal.bottom .color-bar {
+  top: 0;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid #000;
+}
+
+.horizontal.top .color-bar {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #000;
+}
+
+.vertical.left .color-bar {
+  bottom: 0;
+  top: 0;
+  right: 0;
+  border-left: 1px solid #000;
+}
+
+.vertical.right .color-bar {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-right: 1px solid #000;
+}
+
+/* Property elements */
+.property-cost {
+  position: absolute;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.property-name {
+  position: absolute;
+  font-size: 8px;
+  font-weight: bold;
+  max-width: 95%;
+  text-align: center;
+  word-wrap: break-word;
+}
 
 /* Board space styling */
 .board-space {
-  @apply border border-gray-300 bg-white flex flex-col items-center justify-center text-xs font-medium p-1 relative;
-  min-height: 60px;
-  min-width: 60px;
+  @apply border-2 border-gray-400 bg-white flex flex-col items-center justify-start text-xs font-medium relative overflow-hidden;
+  min-height: 70px;
+  min-width: 70px;
 }
 
 .board-corner {
-  @apply rounded-lg p-2;
-  min-height: 80px;
-  min-width: 80px;
+  @apply rounded-lg p-2 bg-gray-50;
+  min-height: 90px;
+  min-width: 90px;
 }
 
 .property-color-bar {
-  @apply h-3 w-full rounded-t;
+  @apply w-full;
+  height: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .player-token {
@@ -248,16 +412,16 @@
     font-size: 10px;
     padding: 0.25rem;
   }
-  
+
   .board-corner {
     min-height: 50px;
     min-width: 50px;
   }
-  
+
   .property-color-bar {
     height: 8px;
   }
-  
+
   .player-token {
     width: 8px;
     height: 8px;
