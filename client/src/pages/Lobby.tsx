@@ -334,21 +334,24 @@ export default function Lobby({ roomCode }: LobbyProps) {
                   <div className="space-y-4">
                     {/* Color Selection for Current Player */}
                     {currentPlayer && !currentPlayer.color && (
-                      <div className="bg-white p-4 rounded-lg border-2 border-saffron">
-                        <Label className="text-sm font-medium mb-3 block">Choose Your Color</Label>
-                        <div className="grid grid-cols-4 gap-2">
+                      <div className="bg-white p-5 rounded-xl border-2 border-saffron shadow-sm">
+                        <Label className="text-sm font-semibold mb-4 block">Choose Your Color</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {getAvailableColors().map((color) => (
                             <button
                               key={color.value}
                               onClick={() => handleColorChange(color.value)}
-                              className={`w-12 h-12 rounded-full border-4 ${color.bg} transition-all hover:scale-110 ${
+                              className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-4 transition-all ${
                                 selectedColor === color.value
-                                  ? "border-navy scale-110"
-                                  : "border-gray-300 hover:border-gray-400"
+                                  ? "border-navy ring-2 ring-saffron/70 scale-105"
+                                  : "border-gray-200 hover:border-gray-400"
                               }`}
                               title={color.name}
                               data-testid={`button-select-color-${color.name.toLowerCase()}`}
-                            />
+                            >
+                              <span className={`w-10 h-10 rounded-full ${color.bg} shadow-inner border border-white`} />
+                              <span className="text-xs font-semibold text-gray-700">{color.name}</span>
+                            </button>
                           ))}
                         </div>
                         {getAvailableColors().length === 0 && (
@@ -364,7 +367,7 @@ export default function Lobby({ roomCode }: LobbyProps) {
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-2">Starting Money</p>
-                      <p className="font-semibold text-lg">₹15,000</p>
+                      <p className="font-semibold text-lg">₹{room.startMoney.toLocaleString()}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-2">Max Players</p>
@@ -385,14 +388,14 @@ export default function Lobby({ roomCode }: LobbyProps) {
               </div>
               
               {/* Action Buttons */}
-              <div className="mt-6 text-center">
+              <div className="mt-8 text-center">
                 <div className="flex justify-center gap-4">
                   {isHost ? (
                     <Button
                       onClick={handleStartGame}
                       disabled={!allReady || !minPlayers || !room.players.every(p => p.color)}
                       size="lg"
-                      className="bg-saffron hover:bg-orange-600 text-white px-8"
+                      className="bg-saffron hover:bg-orange-600 text-white px-10 py-6 text-lg shadow-xl ring-2 ring-saffron/40"
                       data-testid="button-start-game"
                     >
                       <i className="fas fa-play mr-2"></i>
@@ -446,7 +449,7 @@ export default function Lobby({ roomCode }: LobbyProps) {
                 <div>
                   <h4 className="font-semibold mb-2">Getting Started</h4>
                   <ul className="space-y-1 text-gray-600">
-                    <li>• Each player starts with ₹15,000</li>
+                    <li>• Each player starts with host-defined money</li>
                     <li>• All players begin at the START position</li>
                     <li>• Collect ₹2,000 when passing START</li>
                     <li>• Take turns rolling dice and moving</li>
