@@ -51,6 +51,7 @@ export class MemStorage implements IStorage {
       gameState: "waiting",
       currentPlayerIndex: 0,
       turnNumber: 1,
+      startMoney: insertRoom.startMoney ?? 15000,
       createdAt: new Date(),
       isExpired: false,
     };
@@ -98,14 +99,20 @@ export class MemStorage implements IStorage {
     const player: Player = {
       ...insertPlayer,
       id: playerId,
-      money: 15000,
+      money: room.startMoney,
       position: 0,
       isInJail: false,
       jailTurns: 0,
       properties: [],
+      hotelProperties: [],
+      mortgagedProperties: [],
+      buildingLevels: {},
+      consecutiveDoubles: 0,
+      pendingDoubleDecision: false,
       isReady: false,
       isConnected: true,
       hasRolledThisTurn: false,
+      isEliminated: false,
     };
 
     room.players.push(player);
@@ -173,17 +180,25 @@ export class MemStorage implements IStorage {
     if (!room || room.gameState !== "waiting") return false;
 
     room.gameState = "playing";
-    room.currentPlayerIndex = 0;
+    room.currentPlayerIndex = Math.floor(Math.random() * room.players.length);
     room.turnNumber = 1;
 
     // Reset all players to start position
     room.players.forEach(player => {
       player.position = 0;
-      player.money = 15000;
+      player.money = room.startMoney;
       player.properties = [];
+      player.hotelProperties = [];
+      player.mortgagedProperties = [];
       player.isInJail = false;
       player.jailTurns = 0;
+      player.buildingLevels = {};
+      player.consecutiveDoubles = 0;
+      player.pendingDoubleDecision = false;
       player.hasRolledThisTurn = false;
+      player.isEliminated = false;
+      delete player.eliminatedAt;
+      delete player.eliminationOrder;
     });
 
     this.rooms.set(roomId, room);

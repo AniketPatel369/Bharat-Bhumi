@@ -197,7 +197,23 @@
 }
 
 .animate-dice-roll {
-  animation: dice-roll 0.5s ease-in-out;
+  animation: dice-roll 0.6s ease-in-out;
+}
+
+@keyframes jiggle {
+  0%, 85%, 100% {
+    transform: translateX(0);
+  }
+  90% {
+    transform: translateX(-3px) rotate(-1deg);
+  }
+  95% {
+    transform: translateX(3px) rotate(1deg);
+  }
+}
+
+.animate-jiggle {
+  animation: jiggle 2.2s ease-in-out infinite;
 }
 
 /* Token movement animation */
@@ -289,19 +305,19 @@
 
 /* Side-specific classes for board squares */
 .horizontal {
-  font-size: 8px;
+  font-size: 9px;
   text-align: center;
 }
 
 .vertical {
-  font-size: 8px;
+  font-size: 9px;
   text-align: center;
 }
 
 /* Text rotation classes - applied to text elements, NOT containers */
 .rotate90 {
   writing-mode: vertical-rl;
-  min-height: calc(100% - 5px);
+  min-height: calc(100% - 10px);
   justify-content: center;
 }
 
@@ -311,7 +327,7 @@
 
 .rotate270 {
   writing-mode: vertical-rl;
-  min-height: calc(100% - 5px);
+  min-height: calc(100% - 10px);
   justify-content: center;
   transform: rotate(180deg);
 }
@@ -362,32 +378,152 @@
 }
 
 /* Property elements */
+.property-body {
+  @apply flex flex-col items-center justify-between text-center;
+  width: 100%;
+  height: 100%;
+  padding: 6px 4px 8px;
+  gap: 4px;
+}
+
+.property-body-special {
+  @apply justify-center;
+}
+
+.property-icon {
+  font-size: 14px;
+  color: #374151;
+}
+
 .property-cost {
-  position: absolute;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 10px;
+  color: #111827;
 }
 
 .property-name {
-  position: absolute;
-  font-size: 8px;
-  font-weight: bold;
-  max-width: 95%;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.1;
+  max-width: 100%;
   text-align: center;
   word-wrap: break-word;
+  text-transform: uppercase;
+  color: #1f2937;
 }
 
 /* Board space styling */
+.board-frame {
+  background: #32594b;
+  padding: 14px;
+  border-radius: 20px;
+  border: 4px solid #1f3a30;
+}
+
+.board-surface {
+  @apply aspect-square rounded-xl p-2;
+  background: #cfe6d9;
+  border: 2px solid #7fb199;
+}
+
+.board-layout {
+  --corner-size: 110px;
+  --tile-size: 74px;
+  position: relative;
+}
+
+.board-center {
+  border-radius: 16px;
+  background: #a7d3bc;
+  border: 2px dashed rgba(31, 58, 48, 0.25);
+}
+
 .board-space {
-  @apply border-2 border-gray-400 bg-white flex flex-col items-center justify-start text-xs font-medium relative overflow-hidden;
-  min-height: 70px;
-  min-width: 70px;
+  @apply border-2 border-gray-500 bg-white flex items-center justify-center text-xs font-medium relative overflow-hidden;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  background: #eef6f1;
 }
 
 .board-corner {
-  @apply rounded-lg p-2 bg-gray-50;
-  min-height: 90px;
-  min-width: 90px;
+  @apply rounded-lg p-2;
+  width: var(--corner-size);
+  height: var(--corner-size);
+  background: #e3f1ea;
+}
+
+.board-corner-space {
+  position: absolute;
+}
+
+.corner-top-left {
+  top: 0;
+  left: 0;
+}
+
+.corner-top-right {
+  top: 0;
+  right: 0;
+}
+
+.corner-bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+.corner-bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.board-side {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+}
+
+.side-top {
+  top: 0;
+  left: var(--corner-size);
+  right: var(--corner-size);
+  height: var(--corner-size);
+  align-items: stretch;
+}
+
+.side-bottom {
+  bottom: 0;
+  left: var(--corner-size);
+  right: var(--corner-size);
+  height: var(--corner-size);
+  align-items: stretch;
+}
+
+.side-left {
+  left: 0;
+  top: var(--corner-size);
+  bottom: var(--corner-size);
+  width: var(--corner-size);
+  flex-direction: column;
+}
+
+.side-right {
+  right: 0;
+  top: var(--corner-size);
+  bottom: var(--corner-size);
+  width: var(--corner-size);
+  flex-direction: column;
+}
+
+.side-top .board-space,
+.side-bottom .board-space {
+  width: var(--tile-size);
+  height: var(--corner-size);
+}
+
+.side-left .board-space,
+.side-right .board-space {
+  width: var(--corner-size);
+  height: var(--tile-size);
 }
 
 .property-color-bar {
@@ -404,18 +540,24 @@
   z-index: 10;
 }
 
+.turn-indicator {
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.4), 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .board-layout {
+    --corner-size: 70px;
+    --tile-size: 44px;
+  }
+
   .board-space {
-    min-height: 40px;
-    min-width: 40px;
     font-size: 10px;
     padding: 0.25rem;
   }
 
   .board-corner {
-    min-height: 50px;
-    min-width: 50px;
+    padding: 0.25rem;
   }
 
   .property-color-bar {
@@ -439,4 +581,91 @@
 
 .chat-bubble-other {
   @apply bg-white text-gray-800 mr-auto;
+}
+
+/* Landing page redesign */
+.landing-page {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 190, 120, 0.2), transparent 45%),
+    radial-gradient(circle at 95% 0%, rgba(159, 241, 196, 0.22), transparent 40%),
+    #f8fafc;
+}
+
+.landing-banner {
+  background: linear-gradient(95deg, #ff9a56 0%, #fff 35%, #dffde7 100%);
+  box-shadow: 0 12px 30px rgba(31, 57, 112, 0.15);
+}
+
+.landing-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #eef3ff;
+}
+
+.landing-mode-btn {
+  flex: 1;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  color: #36507a;
+  transition: all 0.2s ease;
+}
+
+.landing-mode-btn.active {
+  background: linear-gradient(135deg, #1e4db8, #173d97);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(23, 61, 151, 0.3);
+}
+
+.landing-input {
+  margin-top: 0.35rem;
+  width: 100%;
+  border-radius: 999px;
+  border: 2px solid #dbe8ff;
+  min-height: 3.2rem;
+  font-size: 1.2rem;
+  background: #fff;
+  padding: 0.75rem 1.15rem;
+  color: #1f3b63;
+}
+
+.landing-input:focus {
+  outline: none;
+  border-color: #7aa4ff;
+}
+
+.landing-primary-btn {
+  border-radius: 999px;
+  min-height: 3.25rem;
+  font-size: 1.45rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ff9c4a, #ff6c3b);
+  box-shadow: 0 12px 25px rgba(255, 118, 63, 0.33);
+}
+
+.landing-primary-btn:hover {
+  background: linear-gradient(135deg, #ff8f37, #f95f2f);
+}
+
+.landing-feature {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 1.25rem;
+  border: 1px solid #edf2ff;
+  background: linear-gradient(135deg, #fff 0%, #f5fbff 100%);
+  padding: 1rem 1.2rem;
+  box-shadow: 0 8px 24px rgba(24, 53, 118, 0.08);
+}
+
+.landing-feature h4 {
+  font-size: 2rem;
+  color: #1d3f83;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.landing-feature p {
+  margin-top: 0.15rem;
+  color: #2d466f;
+  font-size: 1.25rem;
 }

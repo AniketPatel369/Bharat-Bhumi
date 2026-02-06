@@ -11,6 +11,7 @@ interface PlayerInfoProps {
   onRollDice: () => void;
   onEndTurn: () => void;
   isRolling: boolean;
+  testIdPrefix?: string;
 }
 
 export default function PlayerInfo({
@@ -19,7 +20,8 @@ export default function PlayerInfo({
   isMyTurn,
   onRollDice,
   onEndTurn,
-  isRolling
+  isRolling,
+  testIdPrefix = "sidebar"
 }: PlayerInfoProps) {
   if (!currentPlayer) return null;
 
@@ -77,7 +79,7 @@ export default function PlayerInfo({
           {/* Quick Actions */}
           <div className="space-y-2">
             <Button
-              data-testid="button-roll-dice-sidebar"
+              data-testid={`button-roll-dice-${testIdPrefix}`}
               onClick={onRollDice}
               disabled={!isMyTurn || isRolling}
               className="w-full bg-saffron hover:bg-orange-600 text-white"
@@ -87,7 +89,7 @@ export default function PlayerInfo({
             </Button>
             
             <Button
-              data-testid="button-end-turn-sidebar"
+              data-testid={`button-end-turn-${testIdPrefix}`}
               onClick={onEndTurn}
               disabled={!isMyTurn}
               variant="outline"
