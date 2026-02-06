@@ -11,6 +11,7 @@ interface PlayerInfoProps {
   onRollDice: () => void;
   onEndTurn: () => void;
   isRolling: boolean;
+  testIdPrefix?: string;
 }
 
 export default function PlayerInfo({
@@ -19,7 +20,8 @@ export default function PlayerInfo({
   isMyTurn,
   onRollDice,
   onEndTurn,
-  isRolling
+  isRolling,
+  testIdPrefix = "sidebar"
 }: PlayerInfoProps) {
   if (!currentPlayer) return null;
 
@@ -77,9 +79,9 @@ export default function PlayerInfo({
           {/* Quick Actions */}
           <div className="space-y-2">
             <Button
-              data-testid="button-roll-dice-sidebar"
+              data-testid={`button-roll-dice-${testIdPrefix}`}
               onClick={onRollDice}
-              disabled={!isMyTurn || isRolling}
+              disabled={!isMyTurn || isRolling || currentPlayer.hasRolledThisTurn || currentPlayer.pendingDoubleDecision || (currentPlayer.isInJail && currentPlayer.jailTurns > 0)}
               className="w-full bg-saffron hover:bg-orange-600 text-white"
             >
               <i className={`fas ${isRolling ? 'fa-spinner animate-spin' : 'fa-dice'} mr-2`}></i>
@@ -87,9 +89,9 @@ export default function PlayerInfo({
             </Button>
             
             <Button
-              data-testid="button-end-turn-sidebar"
+              data-testid={`button-end-turn-${testIdPrefix}`}
               onClick={onEndTurn}
-              disabled={!isMyTurn}
+              disabled={!isMyTurn || !currentPlayer.hasRolledThisTurn || currentPlayer.pendingDoubleDecision}
               variant="outline"
               className="w-full"
             >
@@ -97,6 +99,11 @@ export default function PlayerInfo({
               End Turn
             </Button>
           </div>
+          {isMyTurn && currentPlayer.hasRolledThisTurn && !currentPlayer.pendingDoubleDecision && (
+            <p className="text-xs text-gray-500 text-center">
+              You have 2 minutes after rolling to make actions, then your turn auto-ends.
+            </p>
+          )}
 
           {/* Properties Owned */}
           {currentPlayer.properties.length > 0 && (

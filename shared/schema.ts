@@ -14,15 +14,25 @@ export const playerSchema = insertPlayerSchema.extend({
   isInJail: z.boolean().default(false),
   jailTurns: z.number().default(0),
   properties: z.array(z.number()).default([]),
+  hotelProperties: z.array(z.number()).default([]),
+  mortgagedProperties: z.array(z.number()).default([]),
+  buildingLevels: z.record(z.string(), z.number()).default({}),
+  consecutiveDoubles: z.number().default(0),
+  pendingDoubleDecision: z.boolean().default(false),
   isReady: z.boolean().default(false),
   isConnected: z.boolean().default(true),
   hasRolledThisTurn: z.boolean().default(false),
+  hasBoughtPropertyThisTurn: z.boolean().default(false),
+  isEliminated: z.boolean().default(false),
+  eliminatedAt: z.date().optional(),
+  eliminationOrder: z.number().optional(),
 });
 
 // Room related schemas
 export const insertRoomSchema = z.object({
   hostId: z.string(),
   maxPlayers: z.number().min(2).max(8).default(8),
+  startMoney: z.number().min(5000).max(50000).default(15000),
 });
 
 export const roomSchema = insertRoomSchema.extend({

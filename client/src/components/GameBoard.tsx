@@ -32,6 +32,21 @@ export default function GameBoard({
     return room.players.find(player => player.properties.includes(propertyIndex));
   };
 
+  const canRollDice = !!(
+    currentPlayer &&
+    isMyTurn &&
+    !isRolling &&
+    !currentPlayer.hasRolledThisTurn &&
+    !currentPlayer.pendingDoubleDecision &&
+    !(currentPlayer.isInJail && currentPlayer.jailTurns > 0)
+  );
+
+  const canEndTurn = !!(
+    currentPlayer &&
+    isMyTurn &&
+    currentPlayer.hasRolledThisTurn &&
+    !currentPlayer.pendingDoubleDecision
+  );
 
   // Helper functions to determine classes based on position
   const getSideClasses = (index: number): string => {
@@ -50,22 +65,6 @@ export default function GameBoard({
     return '';
   };
 
-  const getCostPositionStyle = (index: number) => {
-    if (index >= 1 && index <= 9) return { marginTop: '145%' };
-    if (index >= 21 && index <= 29) return { marginBottom: '140%' };
-    if (index >= 11 && index <= 19) return { left: '5px' };
-    if (index >= 31 && index <= 39) return { right: '5px' };
-    return {};
-  };
-
-  const getNamePositionStyle = (index: number) => {
-    if (index >= 1 && index <= 9) return { marginTop: '-50%' };
-    if (index >= 21 && index <= 29) return { marginBottom: '-50%' };
-    if (index >= 11 && index <= 19) return { right: '30px' };
-    if (index >= 31 && index <= 39) return { left: '30px' };
-    return {};
-  };
-
   const renderPropertySpace = (property: typeof GAME_PROPERTIES[0], index: number, className: string = "") => {
     const owner = getPropertyOwner(index);
     const hasPlayers = room.players.some(player => player.position === index);
@@ -82,7 +81,8 @@ export default function GameBoard({
     return (
       <div
         key={index}
-        className={`board-space ${isCorner ? 'board-corner' : sideClasses} ${className} cursor-pointer hover:bg-gray-50 transition-colors`}
+        className={`board-space ${isCorner ? 'board-corner' : sideClasses} ${className} cursor-pointer transition-colors`}
+        style={owner ? { backgroundColor: `${owner.color}22`, borderColor: owner.color } : undefined}
         onClick={() => onPropertyClick(index)}
         data-testid={`property-${index}`}
       >
@@ -91,22 +91,18 @@ export default function GameBoard({
           <div className={`color-bar ${getColorGroupClass(property.colorGroup)}`} />
         )}
 
-        {/* Property Cost - with rotation class */}
-        {property.price && !isCorner && (
-          <div
-            className={`property-cost ${rotationClass}`}
-            style={getCostPositionStyle(index)}
-          >
-            {property.price}
+        <div className={`property-body ${rotationClass} ${property.type === 'special' ? 'property-body-special' : ''}`}>
+          {property.type === 'special' && (
+            <i className={`fas ${getSpecialIcon(property.name)} property-icon`} aria-hidden="true"></i>
+          )}
+          <div className="property-name">
+            {property.name}
           </div>
-        )}
-
-        {/* Property Name - with rotation class */}
-        <div
-          className={`property-name ${rotationClass}`}
-          style={getNamePositionStyle(index)}
-        >
-          {property.name}
+          {property.price && !isCorner && (
+            <div className="property-cost">
+              ₹{property.price}
+            </div>
+          )}
         </div>
 
         {/* Owner Indicator */}
@@ -116,6 +112,24 @@ export default function GameBoard({
             style={{ backgroundColor: owner.color }}
             title={`Owned by ${owner.name}`}
           />
+        )}
+
+        {owner?.hotelProperties?.includes(index) && (
+          <div className="absolute top-1 left-1 text-xs" title="Hotel">
+            <i className="fas fa-hotel text-indigo-700"></i>
+          </div>
+        )}
+
+        {owner && Number(owner.buildingLevels?.[String(index)] || 0) > 0 && !owner.hotelProperties?.includes(index) && (
+          <div className="absolute top-1 left-1 text-[10px] font-bold text-green-700" title="Houses">
+            H{Number(owner.buildingLevels?.[String(index)] || 0)}
+          </div>
+        )}
+
+        {owner?.mortgagedProperties?.includes(index) && (
+          <div className="absolute bottom-1 right-1 text-[10px] font-bold text-red-700" title="Mortgaged">
+            M
+          </div>
         )}
 
         {/* Players on this space */}
@@ -171,158 +185,131 @@ export default function GameBoard({
     return iconMap[name] || 'fa-building';
   };
 
-  // Arrange properties in board layout (11x11 grid)
-  const arrangeProperties = () => {
-    const arranged: (typeof GAME_PROPERTIES[0] | null)[][] = Array(11).fill(null).map(() => Array(11).fill(null));
-
-    // Bottom row (START to JAIL)
-    for (let i = 0; i <= 10; i++) {
-      arranged[10][i] = GAME_PROPERTIES[i];
-    }
-
-    // Right column (excluding corners)
-    for (let i = 1; i <= 9; i++) {
-      arranged[10 - i][10] = GAME_PROPERTIES[10 + i];
-    }
-
-    // Top row (FREE PARKING to GO TO JAIL)
-    for (let i = 1; i <= 9; i++) {
-      arranged[0][10 - i] = GAME_PROPERTIES[20 + i];
-    }
-
-    // Left column (excluding corners)
-    for (let i = 1; i <= 9; i++) {
-      arranged[i][0] = GAME_PROPERTIES[30 + i];
-    }
-
-    return arranged;
-  };
-
-  const boardLayout = arrangeProperties();
+  const bottomIndices = Array.from({ length: 9 }, (_, i) => i + 1);
+  const leftIndices = Array.from({ length: 9 }, (_, i) => i + 11);
+  const topIndices = Array.from({ length: 9 }, (_, i) => i + 21);
+  const rightIndices = Array.from({ length: 9 }, (_, i) => i + 31);
 
   return (
-    <div className="bg-forest-green p-4 rounded-xl shadow-2xl">
-      <div className="aspect-square bg-cream rounded-lg p-2 relative max-w-4xl mx-auto">
-        {/* Board Grid */}
-        <div className="grid grid-cols-11 grid-rows-11 h-full gap-0.5">
-          {boardLayout.map((row, rowIndex) =>
-            row.map((property, colIndex) => {
-              if (!property) {
-                // Center area - only render the center div once at position (2,2)
-                if (rowIndex === 2 && colIndex === 2) {
-                  // Center board area spanning 7x7 grid cells
-                  return (
-                    <div
-                      key={`center-${rowIndex}-${colIndex}`}
-                      className="col-span-7 row-span-7 bg-navy rounded-lg flex flex-col items-center justify-center text-white p-4 relative"
-                    >
-                      {/* Game Logo */}
-                      <div className="text-center mb-6">
-                        <h1 className="text-2xl md:text-4xl font-bold text-saffron mb-2">VYAPAAR</h1>
-                        <p className="text-sm md:text-lg opacity-90">Indian Monopoly Game</p>
-                      </div>
+    <div className="board-frame shadow-2xl">
+      <div className="board-surface board-layout relative max-w-4xl mx-auto">
+        <div className="board-corner-space corner-top-left">
+          {renderPropertySpace(GAME_PROPERTIES[30], 30, "corner-space")}
+        </div>
+        <div className="board-corner-space corner-top-right">
+          {renderPropertySpace(GAME_PROPERTIES[20], 20, "corner-space")}
+        </div>
+        <div className="board-corner-space corner-bottom-right">
+          {renderPropertySpace(GAME_PROPERTIES[10], 10, "corner-space")}
+        </div>
+        <div className="board-corner-space corner-bottom-left">
+          {renderPropertySpace(GAME_PROPERTIES[0], 0, "corner-space")}
+        </div>
 
-                      {/* Dice Section */}
-                      <div className="flex items-center space-x-4 mb-6">
-                        <div
-                          className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center text-navy text-xl font-bold shadow-lg ${isRolling ? 'animate-dice-roll' : ''}`}
-                          data-testid="dice-1"
-                        >
-                          <i className={`fas ${diceResult ? getDiceIcon(diceResult.dice1) : 'fa-dice'}`}></i>
-                        </div>
-                        <div
-                          className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center text-navy text-xl font-bold shadow-lg ${isRolling ? 'animate-dice-roll' : ''}`}
-                          data-testid="dice-2"
-                        >
-                          <i className={`fas ${diceResult ? getDiceIcon(diceResult.dice2) : 'fa-dice'}`}></i>
-                        </div>
-                      </div>
+        <div className="board-side side-top">
+          {topIndices.map((index) => renderPropertySpace(GAME_PROPERTIES[index], index))}
+        </div>
+        <div className="board-side side-right">
+          {rightIndices.map((index) => renderPropertySpace(GAME_PROPERTIES[index], index))}
+        </div>
+        <div className="board-side side-bottom">
+          {bottomIndices.map((index) => renderPropertySpace(GAME_PROPERTIES[index], index))}
+        </div>
+        <div className="board-side side-left">
+          {leftIndices.map((index) => renderPropertySpace(GAME_PROPERTIES[index], index))}
+        </div>
 
-                      {/* Current Player Turn */}
-                      {currentPlayer && (
-                        <div className="text-center mb-4">
-                          <p className="text-sm opacity-75 mb-2">
-                            {isMyTurn ? "Your Turn" : "Current Turn"}
-                          </p>
-                          <div className="flex items-center justify-center space-x-2">
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                              style={{ backgroundColor: room.players[room.currentPlayerIndex].color }}
-                            >
-                              {room.players[room.currentPlayerIndex].avatar}
-                            </div>
-                            <span className="font-semibold">
-                              {isMyTurn ? "You" : room.players[room.currentPlayerIndex].name}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+        <div className="board-center absolute inset-[var(--corner-size)] flex flex-col items-center justify-center text-white p-4">
 
-                      {/* Action Buttons */}
-                      {isMyTurn && (
-                        <div className="space-y-2">
-                          <Button
-                            data-testid="button-roll-dice"
-                            onClick={onRollDice}
-                            disabled={isRolling}
-                            className="bg-saffron hover:bg-orange-600 px-6 py-2 rounded-lg font-semibold transition-colors"
-                          >
-                            {isRolling ? (
-                              <>
-                                <i className="fas fa-spinner animate-spin mr-2"></i>
-                                Rolling...
-                              </>
-                            ) : (
-                              <>
-                                <i className="fas fa-dice mr-2"></i>
-                                Roll Dice
-                              </>
-                            )}
-                          </Button>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white/90 text-navy rounded-lg px-3 py-2 text-xs font-semibold shadow" data-testid="center-chance-card">
+              ❓ Chance Deck
+            </div>
+            <div className="bg-white/90 text-navy rounded-lg px-3 py-2 text-xs font-semibold shadow" data-testid="center-community-card">
+              📦 Community Deck
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 mb-6">
+            <div
+              className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center text-navy text-xl font-bold shadow-lg ${isRolling ? 'animate-dice-roll' : ''}`}
+              data-testid="dice-1"
+            >
+              <i className={`fas ${diceResult ? getDiceIcon(diceResult.dice1) : 'fa-dice'}`}></i>
+            </div>
+            <div
+              className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center text-navy text-xl font-bold shadow-lg ${isRolling ? 'animate-dice-roll' : ''}`}
+              data-testid="dice-2"
+            >
+              <i className={`fas ${diceResult ? getDiceIcon(diceResult.dice2) : 'fa-dice'}`}></i>
+            </div>
+          </div>
 
-                          {diceResult && (
-                            <Button
-                              data-testid="button-end-turn"
-                              onClick={onEndTurn}
-                              variant="outline"
-                              className="w-full"
-                            >
-                              <i className="fas fa-forward mr-2"></i>
-                              End Turn
-                            </Button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Dice Result Display */}
-                      {diceResult && (
-                        <div className="mt-4 text-center">
-                          <p className="text-sm opacity-75">Last Roll</p>
-                          <p className="text-lg font-bold" data-testid="text-dice-total">
-                            {diceResult.dice1 + diceResult.dice2}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                // Skip all other center cells - they're covered by the col-span-7 row-span-7
-                if (rowIndex >= 2 && rowIndex <= 8 && colIndex >= 2 && colIndex <= 8) {
-                  return null;
-                }
-                // Empty corner cells
-                return <div key={`empty-${rowIndex}-${colIndex}`} />;
-              }
-
-              // Calculate property index
-              const propertyIndex = GAME_PROPERTIES.findIndex(p => p.id === property.id);
-
-              return (
-                <div key={`${rowIndex}-${colIndex}`}>
-                  {renderPropertySpace(property, propertyIndex)}
+          {currentPlayer && (
+            <div className="text-center mb-4">
+              <p className="text-sm opacity-75 mb-2">
+                {isMyTurn ? "Your Turn" : "Current Turn"}
+              </p>
+              <div className="flex items-center justify-center space-x-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: room.players[room.currentPlayerIndex].color }}
+                >
+                  {room.players[room.currentPlayerIndex].avatar}
                 </div>
-              );
-            })
+                <span className="font-semibold">
+                  {isMyTurn ? "You" : room.players[room.currentPlayerIndex].name}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isMyTurn && (
+            <div className="space-y-2">
+              <Button
+                data-testid="button-roll-dice"
+                onClick={onRollDice}
+                disabled={!canRollDice}
+                className={`bg-saffron hover:bg-orange-600 px-6 py-2 rounded-lg font-semibold transition-colors ${canRollDice ? "animate-jiggle" : ""}`}
+              >
+                {isRolling ? (
+                  <>
+                    <i className="fas fa-spinner animate-spin mr-2"></i>
+                    Rolling...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-dice mr-2"></i>
+                    Roll Dice
+                  </>
+                )}
+              </Button>
+
+              {canEndTurn && (
+                <Button
+                  data-testid="button-end-turn"
+                  onClick={onEndTurn}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <i className="fas fa-forward mr-2"></i>
+                  End Turn
+                </Button>
+              )}
+              {currentPlayer?.hasRolledThisTurn && !currentPlayer.pendingDoubleDecision && (
+                <p className="text-[11px] opacity-80 max-w-[220px] text-center">
+                  2-minute action window is active. Turn will auto-end if no actions are taken.
+                </p>
+              )}
+            </div>
+          )}
+
+          {diceResult && (
+            <div className="mt-4 text-center">
+              <p className="text-sm opacity-75">Last Roll</p>
+              <p className="text-lg font-bold" data-testid="text-dice-total">
+                {diceResult.dice1 + diceResult.dice2}
+              </p>
+            </div>
           )}
         </div>
       </div>

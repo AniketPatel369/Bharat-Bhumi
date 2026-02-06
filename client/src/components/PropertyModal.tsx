@@ -10,6 +10,11 @@ interface PropertyModalProps {
   room: Room | null;
   currentPlayer: Player | null;
   onBuy: (propertyIndex: number, price: number) => void;
+  onBuildHotel?: (propertyIndex: number) => void;
+  onBuyHouse?: (propertyIndex: number) => void;
+  onMortgage?: (propertyIndex: number) => void;
+  onUnmortgage?: (propertyIndex: number) => void;
+  isMyTurn?: boolean;
   onClose: () => void;
 }
 
@@ -19,6 +24,11 @@ export default function PropertyModal({
   room,
   currentPlayer,
   onBuy,
+  onBuildHotel,
+  onBuyHouse,
+  onMortgage,
+  onUnmortgage,
+  isMyTurn = false,
   onClose
 }: PropertyModalProps) {
   if (!show || propertyIndex === null || !room || !currentPlayer) {
@@ -31,10 +41,48 @@ export default function PropertyModal({
   }
 
   const owner = room.players.find(player => player.properties.includes(propertyIndex));
-  const canBuy = !owner && 
-                 property.type !== 'special' && 
-                 property.price && 
+  const canBuy = !owner &&
+                 isMyTurn &&
+                 currentPlayer.hasRolledThisTurn &&
+                 !currentPlayer.hasBoughtPropertyThisTurn &&
+                 currentPlayer.position === propertyIndex &&
+                 property.type !== 'special' &&
+                 property.price &&
                  currentPlayer.money >= property.price;
+
+  const isOwnedByCurrent = !!owner && owner.id === currentPlayer.id;
+  const hasHotel = isOwnedByCurrent && !!owner.hotelProperties?.includes(propertyIndex);
+  const colorSet = property.colorGroup
+    ? GAME_PROPERTIES
+        .filter((item) => item.type === 'property' && item.colorGroup === property.colorGroup)
+        .map((item) => item.id)
+    : [];
+
+  const isMortgaged = !!owner?.mortgagedProperties?.includes(propertyIndex);
+  const currentHouses = Number(owner?.buildingLevels?.[String(propertyIndex)] || 0);
+
+  const canBuildHotel =
+    isOwnedByCurrent &&
+    property.type === 'property' &&
+    !hasHotel &&
+    colorSet.length > 0 &&
+    colorSet.every((id) => owner.properties.includes(id)) &&
+    currentHouses >= 4 &&
+    currentPlayer.money >= (property.houseCost || 2000) &&
+    isMyTurn;
+  const canBuyHouse =
+    isOwnedByCurrent &&
+    property.type === 'property' &&
+    !isMortgaged &&
+    !hasHotel &&
+    colorSet.length > 0 &&
+    colorSet.every((id) => owner.properties.includes(id)) &&
+    currentPlayer.money >= (property.houseCost || 0) &&
+    currentHouses < 4 &&
+    isMyTurn;
+
+  const canMortgage = isOwnedByCurrent && !isMortgaged && !hasHotel && currentHouses === 0;
+  const canUnmortgage = isOwnedByCurrent && isMortgaged;
 
   const getColorGroupClass = (colorGroup: string) => {
     const colorMap: Record<string, string> = {
@@ -88,6 +136,15 @@ export default function PropertyModal({
                 <p className="text-sm text-gray-600">
                   Owned by <span className="font-semibold">{owner.name}</span>
                 </p>
+                {isMortgaged && (
+                  <p className="text-xs text-red-600 mt-1 font-semibold">This property is mortgaged</p>
+                )}
+                {!hasHotel && property.type === 'property' && (
+                  <p className="text-xs text-gray-600 mt-1 font-semibold">Houses: {currentHouses}/4</p>
+                )}
+                {hasHotel && (
+                  <p className="text-xs text-indigo-600 mt-1 font-semibold">Hotel is built on this property</p>
+                )}
               </div>
             ) : property.type === 'special' ? (
               <Badge variant="outline">Special Space</Badge>
@@ -214,6 +271,25 @@ export default function PropertyModal({
                   Pass
                 </Button>
               </>
+            ) : canBuildHotel && onBuildHotel ? (
+              <>
+                <Button
+                  data-testid="button-build-hotel"
+                  onClick={() => onBuildHotel(propertyIndex)}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <i className="fas fa-hotel mr-2"></i>
+                  Build Hotel (₹2,000)
+                </Button>
+                <Button
+                  data-testid="button-close-property"
+                  onClick={onClose}
+                  className="flex-1"
+                  variant="outline"
+                >
+                  Close
+                </Button>
+              </>
             ) : (
               <Button
                 data-testid="button-close-property"
@@ -225,6 +301,31 @@ export default function PropertyModal({
               </Button>
             )}
           </div>
+
+          {isOwnedByCurrent && (
+            <div className="grid grid-cols-2 gap-2">
+              {canBuyHouse && onBuyHouse && (
+                <Button data-testid="button-buy-house" variant="outline" onClick={() => onBuyHouse(propertyIndex)}>
+                  Buy House (₹{(property.houseCost || 0).toLocaleString()})
+                </Button>
+              )}
+              {canBuildHotel && onBuildHotel && (
+                <Button data-testid="button-build-hotel-inline" variant="outline" onClick={() => onBuildHotel(propertyIndex)}>
+                  Build Hotel
+                </Button>
+              )}
+              {canMortgage && onMortgage && (
+                <Button data-testid="button-mortgage" variant="destructive" onClick={() => onMortgage(propertyIndex)}>
+                  Mortgage
+                </Button>
+              )}
+              {canUnmortgage && onUnmortgage && (
+                <Button data-testid="button-unmortgage" onClick={() => onUnmortgage(propertyIndex)}>
+                  Unmortgage
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Purchase Warning */}
           {canBuy && property.price && (

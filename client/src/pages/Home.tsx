@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,314 +7,250 @@ import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
+  const landingAssets = {
+    banner: "/src/assets/landing/banner.png",
+    board: "/src/assets/landing/board-right.png",
+    flag: "/src/assets/landing/icon-flag.png",
+    cities: "/src/assets/landing/icon-cities.png",
+    multiplayer: "/src/assets/landing/icon-multiplayer.png",
+    currency: "/src/assets/landing/icon-currency.png",
+  };
+
   const [, setLocation] = useLocation();
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [startMoney, setStartMoney] = useState(15000);
+  const [activeMode, setActiveMode] = useState<"create" | "join">("create");
   const { toast } = useToast();
   const { socket, isConnected } = useSocket();
+  const createListenerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const joinListenerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
-  const playerColors = [
-    { name: "Red", value: "#EF4444", bg: "bg-red-500" },
-    { name: "Blue", value: "#3B82F6", bg: "bg-blue-500" },
-    { name: "Green", value: "#22C55E", bg: "bg-green-500" },
-    { name: "Purple", value: "#A855F7", bg: "bg-purple-500" },
-    { name: "Orange", value: "#F97316", bg: "bg-orange-500" },
-    { name: "Pink", value: "#EC4899", bg: "bg-pink-500" },
-    { name: "Cyan", value: "#06B6D4", bg: "bg-cyan-500" },
-    { name: "Yellow", value: "#EAB308", bg: "bg-yellow-500" },
-  ];
-
-  const [selectedColor, setSelectedColor] = useState(playerColors[0]);
+  useEffect(() => {
+    return () => {
+      if (socket && createListenerRef.current) {
+        socket.removeEventListener("message", createListenerRef.current);
+      }
+      if (socket && joinListenerRef.current) {
+        socket.removeEventListener("message", joinListenerRef.current);
+      }
+    };
+  }, [socket]);
 
   const handleCreateRoom = () => {
     if (!playerName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter your name",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter your name", variant: "destructive" });
       return;
     }
 
     if (!isConnected || !socket) {
-      toast({
-        title: "Connection Error",
-        description: "Not connected to server",
-        variant: "destructive",
-      });
+      toast({ title: "Connection Error", description: "Not connected to server", variant: "destructive" });
       return;
     }
 
     socket.send(JSON.stringify({
-      type: 'createRoom',
+      type: "createRoom",
       hostName: playerName.trim(),
-      maxPlayers: maxPlayers
+      maxPlayers,
+      startMoney,
     }));
 
-    // Listen for room creation response
+    if (createListenerRef.current) {
+      socket.removeEventListener("message", createListenerRef.current);
+      createListenerRef.current = null;
+    }
+
     const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'roomCreated') {
-        localStorage.setItem('playerId', data.playerId);
-        localStorage.setItem('playerName', playerName.trim());
+      if (data.type === "roomCreated") {
+        localStorage.setItem("playerId", data.playerId);
+        localStorage.setItem("playerName", playerName.trim());
         setLocation(`/lobby/${data.room.code}`);
-        socket.removeEventListener('message', handleMessage);
-      } else if (data.type === 'error') {
-        toast({
-          title: "Error",
-          description: data.message,
-          variant: "destructive",
-        });
-        socket.removeEventListener('message', handleMessage);
+        socket.removeEventListener("message", handleMessage);
+        createListenerRef.current = null;
+      } else if (data.type === "error") {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+        socket.removeEventListener("message", handleMessage);
+        createListenerRef.current = null;
       }
     };
 
-    socket.addEventListener('message', handleMessage);
+    createListenerRef.current = handleMessage;
+    socket.addEventListener("message", handleMessage);
   };
 
   const handleJoinRoom = () => {
     if (!playerName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter your name",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter your name", variant: "destructive" });
       return;
     }
 
     if (!roomCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter room code",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter room code", variant: "destructive" });
       return;
     }
 
     if (!isConnected || !socket) {
-      toast({
-        title: "Connection Error",
-        description: "Not connected to server",
-        variant: "destructive",
-      });
+      toast({ title: "Connection Error", description: "Not connected to server", variant: "destructive" });
       return;
     }
 
     socket.send(JSON.stringify({
-      type: 'joinRoom',
+      type: "joinRoom",
       roomCode: roomCode.trim().toUpperCase(),
-      playerName: playerName.trim()
+      playerName: playerName.trim(),
     }));
 
-    // Listen for room join response
+    if (joinListenerRef.current) {
+      socket.removeEventListener("message", joinListenerRef.current);
+      joinListenerRef.current = null;
+    }
+
     const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'roomJoined') {
-        localStorage.setItem('playerId', data.playerId);
-        localStorage.setItem('playerName', playerName.trim());
+      if (data.type === "roomJoined") {
+        localStorage.setItem("playerId", data.playerId);
+        localStorage.setItem("playerName", playerName.trim());
         setLocation(`/lobby/${roomCode.trim().toUpperCase()}`);
-        socket.removeEventListener('message', handleMessage);
-      } else if (data.type === 'error') {
-        toast({
-          title: "Error",
-          description: data.message,
-          variant: "destructive",
-        });
-        socket.removeEventListener('message', handleMessage);
+        socket.removeEventListener("message", handleMessage);
+        joinListenerRef.current = null;
+      } else if (data.type === "error") {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+        socket.removeEventListener("message", handleMessage);
+        joinListenerRef.current = null;
       }
     };
 
-    socket.addEventListener('message', handleMessage);
+    joinListenerRef.current = handleMessage;
+    socket.addEventListener("message", handleMessage);
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="bg-gradient-to-r from-saffron via-white to-indian-green p-8 rounded-xl shadow-2xl mb-8">
-            <h1 className="text-5xl md:text-6xl font-bold navy mb-4">VYAPAAR</h1>
-            <p className="text-xl dark-slate mb-8">Experience the Classic Indian Monopoly Game</p>
-            
-            {!showCreateForm && !showJoinForm && (
-              <div className="grid md:grid-cols-2 gap-6">
-                <Button
-                  data-testid="button-create-room"
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-saffron hover:bg-orange-600 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg transition-all transform hover:scale-105"
-                >
-                  <i className="fas fa-plus-circle mb-2 text-2xl block"></i>
-                  Create New Room
-                </Button>
-                <Button
-                  data-testid="button-join-room"
-                  onClick={() => setShowJoinForm(true)}
-                  className="bg-indian-green hover:bg-green-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg transition-all transform hover:scale-105"
-                >
-                  <i className="fas fa-sign-in-alt mb-2 text-2xl block"></i>
-                  Join Existing Room
-                </Button>
+    <div className="landing-page min-h-screen py-8 px-4">
+      <div className="mx-auto w-full max-w-[1320px] space-y-6">
+        <div className="landing-banner rounded-[26px] px-6 py-8 md:px-10 md:py-9">
+          <div className="flex items-center justify-between gap-4">
+            <img
+              src={landingAssets.flag}
+              alt="Indian flag icon"
+              className="landing-banner-icon h-12 w-12 md:h-16 md:w-16"
+            />
+            <div className="text-center flex-1">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-[#173d97]">VYAAPAAR</h1>
+              <p className="mt-2 text-xl md:text-4xl text-[#1f3970] font-semibold">Play the Indian Business Game</p>
+            </div>
+            <img
+              src={landingAssets.banner}
+              alt="Vyaapaar banner icon"
+              className="landing-banner-icon h-12 w-12 md:h-16 md:w-16"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.35fr]">
+          <div className="landing-panel rounded-[28px] p-6 md:p-8 shadow-xl">
+            <div className="mb-4 flex items-center gap-2 rounded-full bg-[#f5f8ff] p-1">
+              <button
+                className={`landing-mode-btn ${activeMode === "create" ? "active" : ""}`}
+                onClick={() => setActiveMode("create")}
+                data-testid="button-create-room"
+              >
+                Create Room
+              </button>
+              <button
+                className={`landing-mode-btn ${activeMode === "join" ? "active" : ""}`}
+                onClick={() => setActiveMode("join")}
+                data-testid="button-join-room"
+              >
+                Join Room
+              </button>
+            </div>
+
+            {activeMode === "create" ? (
+              <div className="space-y-4">
+                <h2 className="text-4xl font-extrabold text-[#173d97]">Create New Room</h2>
+                <div>
+                  <Label htmlFor="create-name" data-testid="label-player-name" className="text-lg text-[#344d78]">Your Name</Label>
+                  <Input id="create-name" data-testid="input-player-name" value={playerName} onChange={(e)=>setPlayerName(e.target.value)} placeholder="Host" maxLength={20} className="landing-input" />
+                </div>
+                <div>
+                  <Label htmlFor="max-players" data-testid="label-max-players" className="text-lg text-[#344d78]">Maximum Players</Label>
+                  <select id="max-players" data-testid="select-max-players" value={maxPlayers} onChange={(e)=>setMaxPlayers(parseInt(e.target.value))} className="landing-input">
+                    {[2,3,4,5,6,7,8].map((n)=> <option key={n} value={n}>{n} Players</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="start-money" data-testid="label-start-money" className="text-lg text-[#344d78]">Starting Money (Host decides)</Label>
+                  <Input id="start-money" type="number" min={5000} max={50000} step={500} data-testid="input-start-money" value={startMoney} onChange={(e)=>setStartMoney(Math.max(5000, Math.min(50000, Number(e.target.value)||15000)))} className="landing-input" />
+                </div>
+                <Button data-testid="button-create-confirm" onClick={handleCreateRoom} disabled={!isConnected} className="landing-primary-btn w-full">Create Room</Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h2 className="text-4xl font-extrabold text-[#173d97]">Join Existing Room</h2>
+                <div>
+                  <Label htmlFor="join-name" data-testid="label-join-name" className="text-lg text-[#344d78]">Your Name</Label>
+                  <Input id="join-name" data-testid="input-join-name" value={playerName} onChange={(e)=>setPlayerName(e.target.value)} placeholder="Enter your name" maxLength={20} className="landing-input" />
+                </div>
+                <div>
+                  <Label htmlFor="room-code" data-testid="label-room-code" className="text-lg text-[#344d78]">Room Code</Label>
+                  <Input id="room-code" data-testid="input-room-code" value={roomCode} onChange={(e)=>setRoomCode(e.target.value.toUpperCase())} placeholder="ABCD12" maxLength={6} className="landing-input uppercase tracking-widest" />
+                </div>
+                <Button data-testid="button-join-confirm" onClick={handleJoinRoom} disabled={!isConnected} className="landing-primary-btn w-full">Join Room</Button>
               </div>
             )}
+
+            <div className="mt-5 text-right text-lg font-medium text-[#2a466f]">
+              <span className={`inline-block h-3 w-3 rounded-full mr-2 ${isConnected ? "bg-emerald-400" : "bg-red-400"}`}></span>
+              {isConnected ? "Connected" : "Disconnected"}
+            </div>
+          </div>
+
+          <div className="landing-panel rounded-[28px] p-3 md:p-4 shadow-xl">
+            <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#fff8ea] via-[#fdfefe] to-[#e6f8f0] p-4 md:p-8 min-h-[420px]">
+              <img
+                src={landingAssets.board}
+                alt="Bharat Bhumi board preview"
+                className="landing-board-preview"
+              />
+              <div className="relative z-10 grid h-full place-items-center text-center px-6">
+                <div>
+                  <h3 className="text-6xl font-black text-[#173d97]">VYAAPAAR</h3>
+                  <p className="mt-2 text-2xl text-[#2a4466] font-semibold">Play the Indian Business Game</p>
+                  <div className="mx-auto mt-8 max-w-sm rounded-2xl bg-white/90 p-5 shadow-2xl">
+                    <p className="text-2xl font-bold text-[#173d97]">Host</p>
+                    <p className="mt-1 text-4xl font-extrabold text-[#1f3d6f]">₹{startMoney.toLocaleString()}</p>
+                    <p className="mt-1 text-[#4e617f] text-lg">Waiting for Players...</p>
+                    <Button className="mt-4 w-full rounded-full bg-[#5ecb53] hover:bg-[#45b43d] text-white text-xl font-bold py-6">Start Game</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Create Room Form */}
-        {showCreateForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-2xl text-navy flex items-center">
-                <i className="fas fa-plus-circle mr-2"></i>
-                Create New Room
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="create-name" data-testid="label-player-name">Your Name</Label>
-                <Input
-                  id="create-name"
-                  data-testid="input-player-name"
-                  placeholder="Enter your name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={20}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="max-players" data-testid="label-max-players">Maximum Players</Label>
-                <select
-                  id="max-players"
-                  data-testid="select-max-players"
-                  value={maxPlayers}
-                  onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md bg-white"
-                >
-                  <option value={2}>2 Players</option>
-                  <option value={3}>3 Players</option>
-                  <option value={4}>4 Players</option>
-                  <option value={5}>5 Players</option>
-                  <option value={6}>6 Players</option>
-                  <option value={7}>7 Players</option>
-                  <option value={8}>8 Players</option>
-                </select>
-              </div>
-
-
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  data-testid="button-create-confirm"
-                  onClick={handleCreateRoom}
-                  disabled={!isConnected}
-                  className="bg-saffron hover:bg-orange-600 text-white flex-1"
-                >
-                  Create Room
-                </Button>
-                <Button
-                  data-testid="button-create-cancel"
-                  variant="outline"
-                  onClick={() => setShowCreateForm(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Join Room Form */}
-        {showJoinForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-2xl text-navy flex items-center">
-                <i className="fas fa-sign-in-alt mr-2"></i>
-                Join Existing Room
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="join-name" data-testid="label-join-name">Your Name</Label>
-                <Input
-                  id="join-name"
-                  data-testid="input-join-name"
-                  placeholder="Enter your name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={20}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="room-code" data-testid="label-room-code">Room Code</Label>
-                <Input
-                  id="room-code"
-                  data-testid="input-room-code"
-                  placeholder="Enter 6-digit room code"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                />
-              </div>
-              
-
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  data-testid="button-join-confirm"
-                  onClick={handleJoinRoom}
-                  disabled={!isConnected}
-                  className="bg-indian-green hover:bg-green-700 text-white flex-1"
-                >
-                  Join Room
-                </Button>
-                <Button
-                  data-testid="button-join-cancel"
-                  variant="outline"
-                  onClick={() => setShowJoinForm(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Connection Status */}
-        <div className="text-center">
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-            isConnected 
-              ? "bg-green-100 text-green-800" 
-              : "bg-red-100 text-red-800"
-          }`}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${
-              isConnected ? "bg-green-500" : "bg-red-500"
-            }`} />
-            {isConnected ? "Connected" : "Connecting..."}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="landing-feature">
+            <img src={landingAssets.cities} alt="Indian Cities icon" className="landing-feature-icon" />
+            <div>
+              <h4>Indian Cities</h4>
+              <p>Buy and trade famous Indian landmarks and cities</p>
+            </div>
           </div>
-        </div>
-
-        {/* Features showcase */}
-        <div className="grid md:grid-cols-3 gap-6 mt-12">
-          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-            <i className="fas fa-map-marked-alt text-saffron text-3xl mb-4"></i>
-            <h3 className="font-semibold text-lg mb-2">Indian Cities</h3>
-            <p className="text-gray-600">Buy and trade famous Indian landmarks and cities</p>
+          <div className="landing-feature">
+            <img src={landingAssets.multiplayer} alt="Multiplayer icon" className="landing-feature-icon" />
+            <div>
+              <h4>Multiplayer</h4>
+              <p>Play with up to 8 friends in real-time</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-            <i className="fas fa-users text-indian-green text-3xl mb-4"></i>
-            <h3 className="font-semibold text-lg mb-2">Multiplayer</h3>
-            <p className="text-gray-600">Play with up to 8 friends in real-time</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-            <i className="fas fa-rupee-sign navy text-3xl mb-4"></i>
-            <h3 className="font-semibold text-lg mb-2">Indian Currency</h3>
-            <p className="text-gray-600">All transactions in Indian Rupees (₹)</p>
+          <div className="landing-feature">
+            <img src={landingAssets.currency} alt="Indian Currency icon" className="landing-feature-icon" />
+            <div>
+              <h4>Indian Currency</h4>
+              <p>All transactions in Indian Rupees (₹)</p>
+            </div>
           </div>
         </div>
       </div>
